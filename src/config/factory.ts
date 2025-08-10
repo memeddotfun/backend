@@ -15,7 +15,7 @@ const airdrop_contract = new ethers.Contract(config.memedEngageToEarn, airdropAB
 const airdrop_contractWS = new ethers.Contract(config.memedEngageToEarn, airdropABI, providerWS);
 
 
-export default {
+export {
   factory_contract,
   airdrop_contract,
   airdrop_contractWS,

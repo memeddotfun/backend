@@ -1,9 +1,6 @@
 import express from 'express';
 import 'dotenv/config';
-import { 
-  waitlistRoutes 
-} from './routes/';
-import { setupWaitlistCleanupCron } from './cron/cleanupWaitlist';
+import routes from './routes';
 import cors from 'cors';
 import morgan from 'morgan';
 
@@ -16,10 +13,7 @@ app.use(cors({origin: [process.env.FRONTEND_URL!, 'http://localhost:3000'], cred
 app.use(morgan('dev'));
 
 // Routes
-app.use('/api/waitlist', waitlistRoutes);
-
-// Setup cron jobs
-setupWaitlistCleanupCron();
+app.use('/api/fair-launch', routes);
 
 // Start server
 app.listen(PORT, () => {
