@@ -14,11 +14,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
 model User {
   id String @id @default(uuid())
   address String @unique
+  lensUsername String @unique
+  role Role @default(USER)
+  session Session[]
+  token Token[]
   nonce Nonce[]
   reward Reward[]
+  lastLogin DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -27,6 +37,8 @@ model Token {
   id String @id @default(uuid())
   fairLaunchId String
   address String? @unique
+  user User @relation(fields: [userId], references: [id])
+  userId String
   image Image @relation(fields: [imageId], references: [id])
   imageId String
   airdrop Airdrop[]
@@ -36,7 +48,7 @@ model Token {
 
 model Image {
   id String @id @default(uuid())
-  ipfsHash String @unique
+  ipfsCid String @unique
   s3Key String @unique
   token Token[]
   createdAt DateTime @default(now())
@@ -70,9 +82,26 @@ model Reward {
 
 model Nonce {
   id String @id @default(uuid())
-  nonce Int @unique
+  nonce String @unique
   user User @relation(fields: [userId], references: [id])
   userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id String @id @default(uuid())
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  session String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Config {
+  id String @id @default(uuid())
+  key String @unique
+  value String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
