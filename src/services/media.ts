@@ -17,7 +17,7 @@ export const uploadMedia = async (file: Express.Multer.File): Promise<Media> => 
     const response = await pinata.upload.public.file(fileBlob);
     const Key = `token-images/${response.cid}.${file.mimetype.split("/")[1]}`;
     await s3Client.send(new PutObjectCommand({
-        Bucket: process.env.AWS_BUCKET_NAME,
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key,
         Body: file.buffer,
     }));

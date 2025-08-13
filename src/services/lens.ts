@@ -1,6 +1,14 @@
 import { fetchAccount, fetchAccountGraphStats, fetchPosts, fetchFollowers } from "@lens-protocol/client/actions";
-import { evmAddress } from '@lens-protocol/client';
+import { evmAddress, mainnet } from '@lens-protocol/client';
 import client from '../config/lens';
+import { BigQuery } from '@google-cloud/bigquery';
+
+const bigquery = new BigQuery({
+  keyFilename: './gcloud.json',
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+});
+
+
 
 /**
  * Get account information and follower statistics for a Lens handle
@@ -13,17 +21,17 @@ async function getFollowerStats(handle: string) {
       localName: handle,
     }
   });
-  
+
   if (result.isErr() || !result.value) {
     throw new Error('Account not found');
   }
-  
+
   const account = result.value;
-  
+
   const statsResult = await fetchAccountGraphStats(client, {
     account: evmAddress(account.address),
   });
-  
+
   return statsResult;
 }
 
@@ -37,7 +45,7 @@ async function getLensUsername(address: string) {
   return result.value.username.localName;
 }
 
-async function getHandleOwner(handle: string) {  
+async function getHandleOwner(handle: string) {
   const result = await fetchAccount(client, {
     username: {
       localName: handle,
@@ -47,7 +55,7 @@ async function getHandleOwner(handle: string) {
     return null;
   }
   return result.value.address;
-} 
+}
 
 /**
  * Get followers for a lens handle
@@ -60,7 +68,7 @@ async function getFollowers(handle: string) {
         localName: handle,
       }
     });
-    
+
     if (result.isErr() || !result.value) {
       throw new Error('Account not found');
     }
@@ -70,11 +78,11 @@ async function getFollowers(handle: string) {
     const followersResult = await fetchFollowers(client, {
       account: evmAddress(account.address),
     });
-    
+
     if (followersResult.isErr()) {
       throw new Error('Failed to fetch followers');
     }
-    
+
     return followersResult.value.items;
     // For now, let's return 100 mock addresses for testing
     // return Array.from({ length: 100 }, () => {
@@ -93,16 +101,16 @@ async function getFollowers(handle: string) {
 function mockStats() {
   function randomInt() {
     return Math.floor(Math.random() * (100000 - 75000 + 1)) + 75000;
-    
+
   }
-    return {
-        upvotes: randomInt(),
-        reposts: randomInt(),
-        bookmarks: randomInt(),
-        collects: randomInt(),
-        comments: randomInt(),
-        quotes: randomInt()
-      };
+  return {
+    upvotes: randomInt(),
+    reposts: randomInt(),
+    bookmarks: randomInt(),
+    collects: randomInt(),
+    comments: randomInt(),
+    quotes: randomInt()
+  };
 }
 /**
  * Get engagement metrics for a handle
@@ -110,35 +118,31 @@ function mockStats() {
 async function getEngagementMetrics(handle: string, update: boolean) {
   try {
     const mock = false;
-    const result = await fetchAccount(client, {
-      username: {
-        localName: handle,
-      }
-    });
-    
-    if (result.isErr() || !result.value) {
-      throw new Error('Account not found');
-    }
-    
-    const account = result.value;
-    const engagementMetricsResult = await fetchPosts(client, {
-      filter: {
-        authors: [evmAddress(account.address)]
-      }
-    });
+    const query = `
+      SELECT
+        SUM(ps.total_reactions) AS reactions,
+        SUM(ps.total_comments) AS comments,
+        SUM(ps.total_reposts) AS reposts,
+        FROM \`lens-protocol-mainnet.account.post_summary\` AS ps
+        JOIN \`lens-protocol-mainnet.account.username_assigned\` AS ua
+        ON ps.account = ua.account
+        WHERE ps.updated_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)
+        AND ua.local_name = '${handle}'
+        LIMIT 1`;
 
-    if (engagementMetricsResult.isErr()) {
-      throw new Error('Failed to fetch posts');
+    const [rows] = await bigquery.query(query);
+    const result = rows[0];
+    if (result) {
+      return result;
     }
+    return null;
 
-    return engagementMetricsResult.value.items;
+
   } catch (error) {
     console.error(`Error fetching engagement metrics for ${handle}:`, error);
     throw error;
   }
 }
-
-
 
 export {
   getFollowerStats,

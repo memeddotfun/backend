@@ -27,7 +27,6 @@ model User {
   session Session[]
   token Token[]
   nonce Nonce[]
-  reward Reward[]
   lastLogin DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -41,7 +40,6 @@ model Token {
   userId String
   image Image @relation(fields: [imageId], references: [id])
   imageId String
-  airdrop Airdrop[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -51,31 +49,6 @@ model Image {
   ipfsCid String @unique
   s3Key String @unique
   token Token[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Airdrop {
-  id String @id @default(uuid())
-  token Token @relation(fields: [tokenId], references: [id])
-  tokenId String
-  merkleRoot String
-  reward Reward[]
-  processed Boolean @default(false)
-  amount Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Reward {
-  id String @id @default(uuid())
-  airdrop Airdrop @relation(fields: [airdropId], references: [id])
-  airdropId String
-  user User @relation(fields: [userId], references: [id])
-  userId String
-  amount Int
-  proof String[]
-  claimed Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
