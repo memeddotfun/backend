@@ -104,20 +104,38 @@ function mockStats() {
 
   }
   return {
-    upvotes: randomInt(),
     reposts: randomInt(),
-    bookmarks: randomInt(),
-    collects: randomInt(),
     comments: randomInt(),
-    quotes: randomInt()
+    reactions: randomInt()
   };
 }
+
+async function getHeat(handle: string) {
+  const engagement = await getEngagementMetrics(handle);
+  if (!engagement) {
+    return null;
+  }
+  const heat = (engagement.reactions * 1) + (engagement.comments * 5) + (engagement.reposts * 2);
+  return heat;
+}
+
+type EngagementMetrics = {
+  reactions: number;
+  comments: number;
+  reposts: number;
+}
+
 /**
  * Get engagement metrics for a handle
+ * @param {string} handle - The Lens handle
+ * @returns {Promise<EngagementMetrics | null>} - Engagement metrics
  */
-async function getEngagementMetrics(handle: string, update: boolean) {
+async function getEngagementMetrics(handle: string): Promise<EngagementMetrics | null> {
   try {
     const mock = false;
+    if (mock) {
+      return mockStats();
+    }
     const query = `
       SELECT
         SUM(ps.total_reactions) AS reactions,
@@ -133,7 +151,11 @@ async function getEngagementMetrics(handle: string, update: boolean) {
     const [rows] = await bigquery.query(query);
     const result = rows[0];
     if (result) {
-      return result;
+      return {
+        reactions: result.reactions,
+        comments: result.comments,
+        reposts: result.reposts,
+      };
     }
     return null;
 
@@ -150,4 +172,5 @@ export {
   getHandleOwner,
   getFollowers,
   getEngagementMetrics,
+  getHeat,
 }; 
