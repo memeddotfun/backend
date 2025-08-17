@@ -10,5 +10,6 @@ const provider = new ethers.JsonRpcProvider(`https://lens-sepolia.g.alchemy.com/
 const wallet = new ethers.Wallet(process.env.EXECUTOR_PRIVATE_KEY, provider);
 const factory_contract = new ethers.Contract(config.factory, factoryABI, wallet);
 export {
+  provider,
   factory_contract,
 };

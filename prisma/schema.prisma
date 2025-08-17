@@ -34,7 +34,7 @@ model User {
 
 model Token {
   id String @id @default(uuid())
-  fairLaunchId String
+  fairLaunchId String @unique
   address String? @unique
   user User @relation(fields: [userId], references: [id])
   userId String

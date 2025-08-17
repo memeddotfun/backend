@@ -15,3 +15,28 @@ export const connectWalletSchema = z.object({
     signature: z.string().min(1),
     message: z.string().min(1),
 });
+
+
+export const FairLaunchEventSchema = z.object({
+  address: z.string(),
+  blockHash: z.string(),
+  blockNumber: z.string(),
+  id: z.string(),
+  logIndex: z.string(),
+  name: z.literal("FairLaunchToBeCompleted"),
+  totalRaised: z.string(),
+  transactionHash: z.string()
+});
+
+export const EventResultSchema = z.object({
+  result: z.array(FairLaunchEventSchema)
+});
+
+export const FairLaunchCompletedEventSchema = z.object({
+  id: z.string(),
+  token: z.string()
+});
+
+export type FairLaunchEvent = z.infer<typeof FairLaunchEventSchema>;
+export type EventResult = z.infer<typeof EventResultSchema>;
+export type FairLaunchCompletedEvent = z.infer<typeof FairLaunchCompletedEventSchema>;
