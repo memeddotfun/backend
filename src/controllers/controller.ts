@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema, createNonceSchema, EventResultSchema, FairLaunchCompletedEventSchema } from '../types/zod';
-import { createFairLaunch, updateTokenAddress } from '../services/blockchain';
+import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCompletedEventSchema } from '../types/zod';
+import { completeFairLaunch, createFairLaunch } from '../services/blockchain';
 import { uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
 import { getLensUsername } from '../services/lens';
@@ -134,24 +134,10 @@ export const connectWallet = async (req: Request, res: Response) => {
     }
 };
 
-export const fairLaunchToBeCompletedWebhook = async (req: Request, res: Response) => {
-    try {
-        const { result } = EventResultSchema.parse(req.body);
-
-        await updateTokenAddress(result[0].id);
-
-        res.status(200).json({ message: 'Fair launch webhook processed successfully' });
-        return;
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to process fair launch webhook' });
-        return;
-    }
-};
-
 export const fairLaunchCompletedWebhook = async (req: Request, res: Response) => {
     try {
         const { id } = FairLaunchCompletedEventSchema.parse(req.body);
-        await updateTokenAddress(id);
+        await completeFairLaunch(id);
         res.status(200).json({ message: 'Fair launch completed webhook processed successfully' });
         return;
     } catch (error) {

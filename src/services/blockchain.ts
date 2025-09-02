@@ -37,36 +37,70 @@ export const createFairLaunch = async (creator: string, lensUsername: string, na
 /**
  * Complete a fair launch
  * @param id - The id of the fair launch
- * @param name - The name of the fair launch
- * @param ticker - The ticker of the fair launch
- * @returns The fair launch id
+ * @returns The deployed token address
 */
-export const completeFairLaunch = async (id: string, name: string, ticker: string): Promise<void> => {
+export const completeFairLaunch = async (id: string): Promise<string> => {
   try {
     const { spawn } = require('child_process');
     const path = require('path');
+    const token = await getToken(id);
+    if(!token) {
+      throw new Error('Token not found');
+    }
   
   return new Promise((resolve, reject) => {
     const contractsDir = path.join(__dirname, '../../../contracts');
-    
-    const deployProcess = spawn('npm', [
-      'run',
-      'deploy-token'
+
+    let output = '';
+    const deployProcess = spawn('npx', [
+      'hardhat',
+      'deploy-token',
+      '--network',
+      'lensTestnet',
+      '--creator',
+      token.creator,
+      '--name',
+      token.name,
+      '--ticker',
+      token.ticker,
+      '--id',
+      id
     ], {
       cwd: contractsDir,
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        TOKEN_NAME: name,
-        TOKEN_TICKER: ticker,
-        FAIR_LAUNCH_ID: id
-      }
+      stdio: ['inherit', 'pipe', 'pipe']
     });
     
-    deployProcess.on('close', (code: number | null) => {
+    deployProcess.stdout.on('data', (data: Buffer) => {
+      const chunk = data.toString();
+      output += chunk;
+      process.stdout.write(chunk);
+    });
+    
+    deployProcess.stderr.on('data', (data: Buffer) => {
+      const chunk = data.toString();
+      output += chunk;
+      process.stderr.write(chunk);
+    });
+    
+    deployProcess.on('close', async (code: number | null) => {
       if (code === 0) {
-        console.log(`Fair launch ${id} completed successfully`);
-        resolve();
+        // Extract token address from output
+        const tokenMatch = output.match(/MemedToken deployed to: (0x[a-fA-F0-9]{40})/);
+        if (tokenMatch) {
+          const tokenAddress = tokenMatch[1];
+          console.log(`Fair launch ${id} completed successfully, token: ${tokenAddress}`);
+          await prisma.token.update({
+            where: {
+              fairLaunchId: id
+            },
+            data: {
+              address: tokenAddress
+            }
+          });
+          resolve(tokenAddress);
+        } else {
+          reject(new Error('Could not extract token address from deployment output'));
+        }
       } else {
         console.error(`Fair launch deployment failed with code ${code}`);
         reject(new Error(`Deployment failed with exit code ${code}`));
@@ -80,44 +114,7 @@ export const completeFairLaunch = async (id: string, name: string, ticker: strin
     });
   } catch(e) {
     console.log(e);
-  }
-}
-
-/**
- * Update the token address
- * @param id - The id of the fair launch
- * @returns The fair launch id
-*/
-export const updateTokenAddress = async (id: string): Promise<void> => {
-  try {
- /*   const token = await prisma.token.findUnique({
-        where: {
-            fairLaunchId: id.toString()
-        }
-    });
-    const tokenExists = await getToken(id);
-    if(token && !token.address) {
-        if(tokenExists) {
-            if(tokenExists.address) {
-            await prisma.token.update({
-                where: {
-                    fairLaunchId: id
-                },
-                data: {
-                    address: tokenExists.address
-                }
-            });
-        } else {
-            await completeFairLaunch(id, tokenExists.name, tokenExists.ticker);
-        }
-    }
-  }*/
-  const token = await getToken(id);
-  if(token && !token.address) {
-    await completeFairLaunch(id, token.name, token.ticker);
-  }
-  } catch(e) {
-    console.log(e);
+    throw e;
   }
 }
 
@@ -130,6 +127,7 @@ type Token = {
   fairLaunchId: string;
   name: string;
   ticker: string;
+  creator: string;
   address: string | null;
 }
 export const getToken = async (id: string): Promise<Token | null> => {
@@ -139,6 +137,7 @@ export const getToken = async (id: string): Promise<Token | null> => {
   }
   return {
     fairLaunchId: id,
+    creator: tokenData.creator,
     name: tokenData.name,
     ticker: tokenData.ticker,
     address: tokenData.token !== "0x0000000000000000000000000000000000000000" ? tokenData.token : null
