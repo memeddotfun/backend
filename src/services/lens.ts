@@ -33,8 +33,10 @@ async function getFollowerStats(handle: string) {
   const statsResult = await fetchAccountGraphStats(client, {
     account: evmAddress(account.address),
   });
-
-  return statsResult;
+  if (statsResult.isErr() || !statsResult.value) {
+    return null;
+  }
+  return statsResult.value;
 }
 
 async function getLensUsername(address: string) {

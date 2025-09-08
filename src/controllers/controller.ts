@@ -5,14 +5,16 @@ import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCo
 import { createFairLaunch } from '../services/blockchain';
 import { uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
-import { getLensUsername } from '../services/lens';
+import { getFollowerStats, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
-  }
+}
+
+const MIN_FOLLOWERS_FOR_TOKEN = 8000;
 
 export const createToken = async (req: FileRequest, res: Response) => {
     try {
@@ -21,6 +23,12 @@ export const createToken = async (req: FileRequest, res: Response) => {
 
         if (!image || !image.mimetype.startsWith('image/')) {
             res.status(400).json({ error: 'Image is required and must be an image' });
+            return;
+        }
+
+        const followers = await getFollowerStats(req.user.lensUsername);
+        if (followers && followers.followers < MIN_FOLLOWERS_FOR_TOKEN) {
+            res.status(400).json({ error: 'User must have at least 8000 followers' });
             return;
         }
 
