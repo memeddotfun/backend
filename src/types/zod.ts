@@ -33,8 +33,14 @@ export const EventResultSchema = z.object({
 });
 
 export const FairLaunchCompletedEventSchema = z.object({
+  address: z.string(),
+  blockHash: z.string(),
+  blockNumber: z.string(),
   id: z.string(),
-  token: z.string()
+  logIndex: z.string(),
+  name: z.literal("FairLaunchToBeCompleted"),
+  totalRaised: z.string(),
+  transactionHash: z.string()
 });
 
 export type FairLaunchEvent = z.infer<typeof FairLaunchEventSchema>;

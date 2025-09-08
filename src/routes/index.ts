@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { connectWallet, createToken, createNonce, fairLaunchCompletedWebhook } from '../controllers/controller';
+import { connectWallet, createToken, createNonce, fairLaunchCompletedWebhook, getJobStatus, getQueueStats } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
 import { sessionMiddleware } from '../middleware/session';
 
@@ -17,5 +17,10 @@ router.post('/create-token', sessionMiddleware, nonceMiddleware, upload.single('
 router.post('/create-nonce', createNonce);
 router.post('/connect-wallet', connectWallet);
 router.post('/webhook/fair-launch/completed', fairLaunchCompletedWebhook);
+
+// Job monitoring routes
+router.get('/jobs/:jobId', getJobStatus);
+router.get('/queue/stats', getQueueStats);
+
 
 export default router;

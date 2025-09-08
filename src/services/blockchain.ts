@@ -52,7 +52,10 @@ export const completeFairLaunch = async (id: string): Promise<string> => {
     const contractsDir = path.join(__dirname, '../../../contracts');
 
     let output = '';
-    const deployProcess = spawn('npx', [
+    // Use cmd.exe on Windows to properly resolve npx
+    const isWindows = process.platform === 'win32';
+    const command = isWindows ? 'cmd.exe' : 'npx';
+    const args = isWindows ? ['/c', 'npx', 'hardhat', 'deploy-token', '--network', 'lensTestnet', '--creator', token.creator, '--name', token.name, '--ticker', token.ticker, '--id', id] : [
       'hardhat',
       'deploy-token',
       '--network',
@@ -65,9 +68,12 @@ export const completeFairLaunch = async (id: string): Promise<string> => {
       token.ticker,
       '--id',
       id
-    ], {
+    ];
+    
+    const deployProcess = spawn(command, args, {
       cwd: contractsDir,
-      stdio: ['inherit', 'pipe', 'pipe']
+      stdio: ['inherit', 'pipe', 'pipe'],
+      shell: isWindows
     });
     
     deployProcess.stdout.on('data', (data: Buffer) => {
@@ -129,9 +135,13 @@ type Token = {
   ticker: string;
   creator: string;
   address: string | null;
+  heat: number;
+  lastEngagementBoost: number;
+  lastHeatUpdate: Date;
 }
 export const getToken = async (id: string): Promise<Token | null> => {
   const tokenData = await factory_contract.tokenData(BigInt(id));
+  const fairLaunchData = await factory_contract.fairLaunchData(BigInt(id));
   if(tokenData.name.length === 0) {
     return null;
   }
@@ -140,17 +150,32 @@ export const getToken = async (id: string): Promise<Token | null> => {
     creator: tokenData.creator,
     name: tokenData.name,
     ticker: tokenData.ticker,
-    address: tokenData.token !== "0x0000000000000000000000000000000000000000" ? tokenData.token : null
+    address: tokenData.token !== "0x0000000000000000000000000000000000000000" ? tokenData.token : null,
+    heat: parseInt(fairLaunchData.heat.toString()),
+    lastEngagementBoost: parseInt(fairLaunchData.lastEngagementBoost.toString()),
+    lastHeatUpdate: new Date(parseInt(fairLaunchData.lastHeatUpdate.toString())*1000)
   }
 }
 
+type HeatUpdate = {
+  id: bigint;
+  heat: bigint;
+}
 
+/**
+ * Update the heat of a fair launch
+ * @param heatUpdates - The heat updates
+ */
+export const updateHeat = async (heatUpdates: HeatUpdate[]) => {
+  const tx = await factory_contract.updateHeat(heatUpdates);
+  await tx.wait();
+}
 
 async function test() {
-  try {
-//await createFairLaunch("0x0000000000000000000000000000000009000000", "joshp", "josh", "JOSH", "josh", "https://josh.com");
+  try { 
+ await createFairLaunch("0x0000000000000000000000000000000009000000", "joshp", "josh", "JOSH", "josh", "https://josh.com");
 for(let i = 0; i < 5; i++) {
-  const tx = await factory_contract.commitToFairLaunch(BigInt(8));
+  const tx = await factory_contract.commitToFairLaunch(BigInt(1));
   await tx.wait();
   console.log(i);
 }
@@ -158,3 +183,4 @@ for(let i = 0; i < 5; i++) {
   console.log(e);
 }
 }
+//test();

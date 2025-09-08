@@ -2,6 +2,8 @@ import { fetchAccount, fetchAccountGraphStats, fetchPosts, fetchFollowers } from
 import { evmAddress, mainnet } from '@lens-protocol/client';
 import client from '../config/lens';
 import { BigQuery } from '@google-cloud/bigquery';
+import prisma from '../clients/prisma';
+import { getToken, updateHeat } from "./blockchain";
 
 const bigquery = new BigQuery({
   keyFilename: './gcloud.json',
@@ -110,8 +112,8 @@ function mockStats() {
   };
 }
 
-async function getHeat(handle: string) {
-  const engagement = await getEngagementMetrics(handle);
+async function getHeat(handle: string, from: Date) {
+  const engagement = await getEngagementMetrics(handle, from);
   if (!engagement) {
     return null;
   }
@@ -130,7 +132,7 @@ type EngagementMetrics = {
  * @param {string} handle - The Lens handle
  * @returns {Promise<EngagementMetrics | null>} - Engagement metrics
  */
-async function getEngagementMetrics(handle: string): Promise<EngagementMetrics | null> {
+async function getEngagementMetrics(handle: string, from: Date): Promise<EngagementMetrics | null> {
   try {
     const mock = false;
     if (mock) {
@@ -144,7 +146,7 @@ async function getEngagementMetrics(handle: string): Promise<EngagementMetrics |
         FROM \`lens-protocol-mainnet.account.post_summary\` AS ps
         JOIN \`lens-protocol-mainnet.account.username_assigned\` AS ua
         ON ps.account = ua.account
-        WHERE ps.updated_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)
+        WHERE ps.updated_at > '${from.toISOString()}'
         AND ua.local_name = '${handle}'
         LIMIT 1`;
 
@@ -166,6 +168,27 @@ async function getEngagementMetrics(handle: string): Promise<EngagementMetrics |
   }
 }
 
+const MIN_HEAT_UPDATE = 10;
+/**
+ * Update all tokens heat
+ */
+async function updateAllTokensHeat() {
+  const heatUpdates: { id: bigint, heat: bigint }[] = [];
+  const tokens = await prisma.token.findMany({ include: { user: true } });
+  for (const token of tokens) {
+    const tokenData = await getToken(token.fairLaunchId);
+    if (!tokenData) {
+      continue;
+    }
+    const heat = await getHeat(token.user.lensUsername, tokenData.lastHeatUpdate);
+    if (!heat || ((heat - tokenData.lastEngagementBoost) < MIN_HEAT_UPDATE && new Date() < tokenData.lastHeatUpdate)) {
+      continue;
+    }
+    heatUpdates.push({ id: BigInt(token.fairLaunchId), heat: BigInt(heat) });
+  }
+  await updateHeat(heatUpdates);
+}
+
 export {
   getFollowerStats,
   getLensUsername,
@@ -173,4 +196,5 @@ export {
   getFollowers,
   getEngagementMetrics,
   getHeat,
+  updateAllTokensHeat,
 }; 

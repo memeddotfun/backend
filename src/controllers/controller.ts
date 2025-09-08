@@ -2,12 +2,13 @@ import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
 import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCompletedEventSchema } from '../types/zod';
-import { completeFairLaunch, createFairLaunch } from '../services/blockchain';
+import { createFairLaunch } from '../services/blockchain';
 import { uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
 import { getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
+import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
@@ -136,12 +137,96 @@ export const connectWallet = async (req: Request, res: Response) => {
 
 export const fairLaunchCompletedWebhook = async (req: Request, res: Response) => {
     try {
-        const { id } = FairLaunchCompletedEventSchema.parse(req.body);
-        await completeFairLaunch(id);
-        res.status(200).json({ message: 'Fair launch completed webhook processed successfully' });
+        const { id } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
+        
+        // Add job to queue for asynchronous processing
+        const job = await addTokenDeploymentJob(id);
+        
+        console.log(`Fair launch completion webhook received for ID: ${id}, added to queue as job: ${job.id}`);
+        
+        res.status(200).json({ 
+            message: 'Fair launch completed webhook processed successfully',
+            jobId: job.id,
+            fairLaunchId: id
+        });
         return;
     } catch (error) {
+        console.error('Failed to process fair launch completed webhook:', error);
+        
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ 
+                error: 'Invalid webhook data', 
+                details: error.errors 
+            });
+            return;
+        }
+        
         res.status(500).json({ error: 'Failed to process fair launch completed webhook' });
+        return;
+    }
+};
+
+export const getJobStatus = async (req: Request, res: Response) => {
+    try {
+        const { jobId } = req.params;
+        
+        if (!jobId) {
+            res.status(400).json({ error: 'Job ID is required' });
+            return;
+        }
+        
+        const job = await tokenDeploymentQueue.getJob(jobId);
+        
+        if (!job) {
+            res.status(404).json({ error: 'Job not found' });
+            return;
+        }
+        
+        const state = await job.getState();
+        const progress = job.progress;
+        
+        res.status(200).json({
+            id: job.id,
+            state,
+            progress,
+            data: job.data,
+            createdAt: job.timestamp,
+            processedAt: job.processedOn,
+            finishedAt: job.finishedOn,
+            failedReason: job.failedReason,
+            returnValue: job.returnvalue
+        });
+        return;
+    } catch (error) {
+        console.error('Failed to get job status:', error);
+        res.status(500).json({ error: 'Failed to get job status' });
+        return;
+    }
+};
+
+export const getQueueStats = async (req: Request, res: Response) => {
+    try {
+        const waiting = await tokenDeploymentQueue.getWaiting();
+        const active = await tokenDeploymentQueue.getActive();
+        const completed = await tokenDeploymentQueue.getCompleted();
+        const failed = await tokenDeploymentQueue.getFailed();
+        
+        res.status(200).json({
+            waiting: waiting.length,
+            active: active.length,
+            completed: completed.length,
+            failed: failed.length,
+            jobs: {
+                waiting: waiting.map(job => ({ id: job.id, data: job.data })),
+                active: active.map(job => ({ id: job.id, data: job.data, progress: job.progress })),
+                completed: completed.slice(0, 10).map(job => ({ id: job.id, data: job.data, returnValue: job.returnvalue })),
+                failed: failed.slice(0, 10).map(job => ({ id: job.id, data: job.data, failedReason: job.failedReason }))
+            }
+        });
+        return;
+    } catch (error) {
+        console.error('Failed to get queue stats:', error);
+        res.status(500).json({ error: 'Failed to get queue stats' });
         return;
     }
 };
