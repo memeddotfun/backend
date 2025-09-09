@@ -40,7 +40,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
 
         const media = await uploadMedia(image);
 
-        const fairLaunchId = await createFairLaunch(req.user.address, req.user.lensUsername, name, ticker, description, media.cid);
+        const fairLaunchId = await createFairLaunch(req.user.address, name, ticker, description, media.cid);
 
         await prisma.token.create({
             data: {

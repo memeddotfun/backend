@@ -4,7 +4,6 @@ import prisma from "../clients/prisma";
 /**
  * Create a fair launch
  * @param creator - The creator of the fair launch
- * @param lensUsername - The lens username of the creator
  * @param name - The name of the fair launch
  * @param ticker - The ticker of the fair launch
  * @param description - The description of the fair launch
@@ -12,9 +11,9 @@ import prisma from "../clients/prisma";
  * @returns The fair launch id
 */
 
-export const createFairLaunch = async (creator: string, lensUsername: string, name: string, ticker: string, description: string, image: string): Promise<string> => {
+export const createFairLaunch = async (creator: string, name: string, ticker: string, description: string, image: string): Promise<string> => {
   try {
-    const tx = await factory_contract.startFairLaunch(creator, lensUsername, name, ticker, description, image);
+    const tx = await factory_contract.startFairLaunch(creator, name, ticker, description, image);
     const receipt = await tx.wait();
     for (const log of receipt.logs) {
       try {
@@ -173,7 +172,7 @@ export const updateHeat = async (heatUpdates: HeatUpdate[]) => {
 
 async function test() {
   try { 
- await createFairLaunch("0x0000000000000000000000000000000009000000", "joshp", "josh", "JOSH", "josh", "https://josh.com");
+ await createFairLaunch("0x0000000000000000000000000000000009000000", "joshp", "josh", "JOSH", "https://josh.com");
 for(let i = 0; i < 5; i++) {
   const tx = await factory_contract.commitToFairLaunch(BigInt(1));
   await tx.wait();
