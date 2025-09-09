@@ -14,15 +14,11 @@ export const startHeatUpdateCron = () => {
       console.log('✅ Daily heat update completed successfully');
     } catch (error) {
       console.error('❌ Daily heat update failed:', error);
-      
-      // You could add alerting here (email, Slack, etc.)
-      // await sendAlert('Heat update failed', error.message);
     }
   }, {
-    timezone: 'UTC' // Ensure it runs at 0 UTC regardless of server timezone
+    timezone: 'UTC'
   });
 
-  console.log('🕐 Heat update cron job scheduled to run daily at 00:00 UTC');
   return job;
 };
 
