@@ -114,15 +114,16 @@ export const connectWallet = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'Invalid signature' });
             return;
         }
-        const user = await prisma.user.findUnique({ where: { address } });
-        if (!user) {
-            res.status(400).json({ error: 'User not found' });
+        const nonce = await prisma.nonce.findUnique({ where: { nonce: message } });
+        if (!nonce) {
+            res.status(400).json({ error: 'Invalid nonce' });
             return;
         }
+        await prisma.nonce.delete({ where: { id: nonce.id } });
         const sessionId = randomBytes(32).toString('hex');
         await prisma.session.create({
             data: {
-                user: { connect: { id: user.id } },
+                user: { connect: { id: nonce.userId } },
                 session: sessionId
             }
         });
