@@ -3,7 +3,7 @@ import prisma from '../clients/prisma';
 import { z } from 'zod';
 import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCompletedEventSchema } from '../types/zod';
 import { createFairLaunch } from '../services/blockchain';
-import { uploadMedia } from '../services/media';
+import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
 import { getFollowerStats, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
@@ -235,6 +235,58 @@ export const getQueueStats = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Failed to get queue stats:', error);
         res.status(500).json({ error: 'Failed to get queue stats' });
+        return;
+    }
+};
+
+export const getUserTokens = async (req: Request, res: Response) => {
+    try {
+        const { address } = req.user;
+        const tokens = await prisma.token.findMany({ where: { user: { address } }, include: { image: true } });
+        for (const token of tokens) {
+            const presignedUrl = await getPresignedUrl(token.image.s3Key);
+            token.image.s3Key = presignedUrl;
+        }
+        res.status(200).json({ tokens });
+        return;
+    } catch (error) {
+        console.error('Failed to get user tokens:', error);
+        res.status(500).json({ error: 'Failed to get user tokens' });
+        return;
+    }
+};
+
+export const getToken = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const token = await prisma.token.findUnique({ where: { id }, include: { image: true } });
+        if (!token) {
+            res.status(404).json({ error: 'Token not found' });
+            return;
+        }
+        const presignedUrl = await getPresignedUrl(token.image.s3Key);
+        token.image.s3Key = presignedUrl;
+        res.status(200).json({ token });
+        return;
+    } catch (error) {
+        console.error('Failed to get token:', error);
+        res.status(500).json({ error: 'Failed to get token' });
+        return;
+    }
+};
+
+export const getAllTokens = async (req: Request, res: Response) => {
+    try {
+        const tokens = await prisma.token.findMany({ include: { image: true } });
+        for (const token of tokens) {
+            const presignedUrl = await getPresignedUrl(token.image.s3Key);
+            token.image.s3Key = presignedUrl;
+        }
+        res.status(200).json({ tokens });
+        return;
+    } catch (error) {
+        console.error('Failed to get all tokens:', error);
+        res.status(500).json({ error: 'Failed to get all tokens' });
         return;
     }
 };

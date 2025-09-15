@@ -1,6 +1,7 @@
 import { pinata } from "../clients/pinata";
 import { s3Client } from "../clients/s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 type Media = {
     cid: string;
@@ -25,4 +26,14 @@ export const uploadMedia = async (file: Express.Multer.File): Promise<Media> => 
         cid: response.cid,
         key: Key,
     };
+};
+
+/**
+ * Gets a presigned URL for a media file
+ * @param key - The S3 key of the media file
+ * @returns The presigned URL
+ */
+export const getPresignedUrl = async (key: string): Promise<string> => {
+    const command = new GetObjectCommand({ Bucket: process.env.AWS_S3_BUCKET_NAME, Key: key });
+    return await getSignedUrl(s3Client, command, { expiresIn: 60 * 60 * 24 });
 };
