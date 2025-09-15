@@ -19,8 +19,7 @@ export const createFairLaunch = async (creator: string, name: string, ticker: st
       try {
         const parsed = factory_contract.interface.parseLog(log)
         if(parsed && parsed.name === "FairLaunchStarted") {
-          console.log(parsed.args.fairLaunchId.toString());
-          return parsed.args.fairLaunchId.toString();
+          return parsed.args[0].toString();
         }
       } catch {
         // not this contract’s event
