@@ -14,11 +14,11 @@ interface FileRequest extends Request {
     file?: Express.Multer.File;
 }
 
-const MIN_FOLLOWERS_FOR_TOKEN = 8000;
+const MIN_FOLLOWERS_FOR_TOKEN = 0;
 
 export const createToken = async (req: FileRequest, res: Response) => {
     try {
-        const { name, ticker, description } = createTokenSchema.parse(req.body.data);
+        const { name, ticker, description } = createTokenSchema.parse(JSON.parse(req.body.data));
         const image = req.file;
 
         if (!image || !image.mimetype.startsWith('image/')) {
@@ -128,7 +128,7 @@ export const connectWallet = async (req: Request, res: Response) => {
             }
         });
         const token = jwt.sign({ sessionId }, process.env.JWT_SECRET!);
-        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 24 * 30 });
+        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', path: '/', maxAge: 1000 * 60 * 60 * 24 * 30 });
         res.status(200).json({ message: 'Wallet connected successfully' });
         return;
     } catch (error) {
