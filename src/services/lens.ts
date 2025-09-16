@@ -132,6 +132,7 @@ type EngagementMetrics = {
 /**
  * Get engagement metrics for a handle
  * @param {string} handle - The Lens handle
+ * @param {Date} from - The date from which to get the engagement metrics
  * @returns {Promise<EngagementMetrics | null>} - Engagement metrics
  */
 async function getEngagementMetrics(handle: string, from: Date): Promise<EngagementMetrics | null> {

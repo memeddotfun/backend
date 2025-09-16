@@ -5,10 +5,11 @@ import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCo
 import { createFairLaunch } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
-import { getFollowerStats, getLensUsername } from '../services/lens';
+import { getEngagementMetrics, getFollowerStats, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
+import { lastLoggedInAccount } from '@lens-protocol/client/actions';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
@@ -144,6 +145,42 @@ export const connectWallet = async (req: Request, res: Response) => {
     }
 };
 
+export const disconnectWallet = async (req: Request, res: Response) => {
+    try {
+        const token = req.cookies.token;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { sessionId: string };
+        await prisma.session.delete({ where: { session: decoded.sessionId } });
+        
+        res.clearCookie('token');
+        res.status(200).json({ message: 'Wallet disconnected successfully' });
+        return;
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to disconnect wallet' });
+        return;
+    }
+};
+
+export const getUser = async (req: Request, res: Response) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { token: { include: { image: true } } } });
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        for (const token of user.token) {
+            const presignedUrl = await getPresignedUrl(token.image.s3Key);
+            token.image.s3Key = presignedUrl;
+        }
+        res.status(200).json({ user });
+        return;
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to get user' });
+        return;
+    }
+};
+
 export const fairLaunchCompletedWebhook = async (req: Request, res: Response) => {
     try {
         const { id } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
@@ -240,23 +277,6 @@ export const getQueueStats = async (req: Request, res: Response) => {
     }
 };
 
-export const getUserTokens = async (req: Request, res: Response) => {
-    try {
-        const { address } = req.user;
-        const tokens = await prisma.token.findMany({ where: { user: { address } }, include: { image: true } });
-        for (const token of tokens) {
-            const presignedUrl = await getPresignedUrl(token.image.s3Key);
-            token.image.s3Key = presignedUrl;
-        }
-        res.status(200).json({ tokens });
-        return;
-    } catch (error) {
-        console.error('Failed to get user tokens:', error);
-        res.status(500).json({ error: 'Failed to get user tokens' });
-        return;
-    }
-};
-
 export const getToken = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -291,3 +311,19 @@ export const getAllTokens = async (req: Request, res: Response) => {
         return;
     }
 };
+
+export const getLensEngagement = async (req: Request, res: Response) => {
+    try {
+        const { handle } = req.params;
+        const from = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const engagement = await getEngagementMetrics(handle, from);
+        res.status(200).json({ engagement });
+        return;
+    }
+    catch (error) {
+        console.error('Failed to get lens engagement:', error);
+        res.status(500).json({ error: 'Failed to get lens engagement' });
+        return;
+    }
+};
+
