@@ -6,6 +6,17 @@ export const createTokenSchema = z.object({
     description: z.string().min(1),
 });
 
+export const createUnclaimedTokensSchema = z.object({
+    name: z.string().min(1),
+    ticker: z.string().min(1).max(4),
+    description: z.string().min(1),
+    address: z.string().min(42).max(42),
+});
+
+export const claimUnclaimedTokensSchema = z.object({
+    id: z.string(),
+});
+
 export const createNonceSchema = z.object({
     address: z.string().min(42).max(42),
 });

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { connectWallet, createToken, createNonce, fairLaunchCompletedWebhook, getJobStatus, getQueueStats, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement } from '../controllers/controller';
+import { connectWallet, createToken, createNonce, fairLaunchCompletedWebhook, getJobStatus, getQueueStats, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
 import { sessionMiddleware } from '../middleware/session';
 
@@ -14,6 +14,8 @@ router.get('/health', (req, res) => {
 });
 
 router.post('/create-token', sessionMiddleware, nonceMiddleware, upload.single('image'), createToken);
+router.post('/create-unclaimed-tokens', sessionMiddleware, nonceMiddleware, upload.single('image'), createUnclaimedTokens);
+router.post('/claim-unclaimed-token', sessionMiddleware, nonceMiddleware, claimUnclaimedToken);
 router.post('/create-nonce', createNonce);
 router.post('/connect-wallet', connectWallet);
 router.post('/disconnect-wallet', disconnectWallet);

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCompletedEventSchema } from '../types/zod';
-import { createFairLaunch } from '../services/blockchain';
+import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCompletedEventSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
+import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
 import { getEngagementMetrics, getFollowerStats, getLensUsername } from '../services/lens';
@@ -68,6 +68,102 @@ export const createToken = async (req: FileRequest, res: Response) => {
             return;
         }   
         res.status(500).json({ error: 'Failed to create token' });
+        return;
+    }
+};
+
+export const createUnclaimedTokens = async (req: Request, res: Response) => {
+    try {
+        const { name, ticker, description, address } = createUnclaimedTokensSchema.parse(req.body);
+        const image = req.file;
+
+        if (req.user.role !== 'ADMIN') {
+            res.status(400).json({ error: 'User must be an admin' });
+            return;
+        }
+        
+        if (!image || !image.mimetype.startsWith('image/')) {
+            res.status(400).json({ error: 'Image is required and must be an image' });
+            return;
+        }
+
+        const lensUsername = await getLensUsername(address);
+        if (!lensUsername) {
+            res.status(400).json({ error: 'Lens username not found' });
+            return;
+        }
+
+        let user = await prisma.user.findUnique({ where: { lensUsername } });
+        if (!user) {
+            user = await prisma.user.create({
+                data: { address, lensUsername }
+            });
+            return;
+        }
+
+        const followers = await getFollowerStats(lensUsername);
+        if (followers && followers.followers < MIN_FOLLOWERS_FOR_TOKEN) {
+            res.status(400).json({ error: 'User must have at least 8000 followers' });
+            return;
+        }
+
+        const token = await prisma.token.findFirst({ where: { user: { address }, address: { not: null } } });
+        if (token) {
+            res.status(400).json({ error: 'Token already exists' });
+            return;
+        }
+
+        const media = await uploadMedia(image);
+        const zeroAddress = '0x0000000000000000000000000000000000000000';
+        const fairLaunchId = await createFairLaunch(zeroAddress, name, ticker, description, media.cid);
+
+        await prisma.token.create({
+            data: {
+                fairLaunchId,
+                image: {
+                    create: {
+                        ipfsCid: media.cid,
+                        s3Key: media.key,
+                    }
+                },
+                user: { connect: { id: user.id } }
+            }
+        });
+        res.status(200).json({ message: 'Unclaimed tokens created successfully', fairLaunchId });
+        return;
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ 
+                error: 'Validation failed', 
+                details: error.errors 
+            });
+            return;
+        }   
+        res.status(500).json({ error: 'Failed to create unclaimed tokens' });
+        return;
+    }
+};
+
+export const claimUnclaimedToken = async (req: Request, res: Response) => {
+    try {
+        const { id } = claimUnclaimedTokensSchema.parse(req.body);
+        const token = await prisma.token.findUnique({ where: { id }, include: { user: true } });
+        if (!token) {
+            res.status(404).json({ error: 'Token not found' });
+            return;
+        }
+
+        if (token.user.address !== req.user.address) {
+            res.status(400).json({ error: 'User must be the creator of the token' });
+            return;
+        }
+
+        await claimUnclaimedTokens(id, token.user.address);
+        res.status(200).json({ message: 'Unclaimed tokens claimed successfully' });
+        return;
+    } catch (error) {
+        console.error('Failed to claim unclaimed tokens:', error);
+        res.status(500).json({ error: 'Failed to claim unclaimed tokens' });
         return;
     }
 };

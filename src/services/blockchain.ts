@@ -32,7 +32,17 @@ export const createFairLaunch = async (creator: string, name: string, ticker: st
   }
 }
 
-/**
+ 
+export const claimUnclaimedTokens = async (id: string, creator: string): Promise<void> => {
+  try {
+    const tx = await factory_contract.claimToken(id, creator);
+    await tx.wait();
+  } catch(e) {
+    console.log(e);
+    throw e;
+  }
+}
+/** 
  * Complete a fair launch
  * @param id - The id of the fair launch
  * @returns The deployed token address
