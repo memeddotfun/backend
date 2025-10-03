@@ -56,10 +56,10 @@ async function getLensAccountId(address: string, handle: string) {
     }
   });
   const owner = await getHandleOwner(handle);
-  if (result.isErr() || !result.value || !result.value.metadata || owner !== address) {
+  if (result.isErr() || !result.value || owner.toLowerCase() !== address.toLowerCase()) {
     return null;
   }
-  return result.value.metadata.id;
+  return result.value.address;
 }
 
 async function getHandleOwner(handle: string) {
@@ -71,7 +71,7 @@ async function getHandleOwner(handle: string) {
   if (result.isErr() || !result.value) {
     return null;
   }
-  return result.value.address;
+  return result.value.owner;
 }
 
 /**
