@@ -4,7 +4,6 @@ import routes from './routes';
 import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import './queues/tokenDeployment'; // Initialize the worker
 import { startHeatUpdateCron } from './cron/heatUpdate';
 
 const app = express();
