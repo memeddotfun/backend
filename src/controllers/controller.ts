@@ -9,7 +9,7 @@ import { getEngagementMetrics, getFollowerStats, getLensAccountId, getLensUserna
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
-
+import { getToken as getTokenBlockchain } from '../services/blockchain';
 interface FileRequest extends Request {
     file?: Express.Multer.File;
 }  
@@ -155,12 +155,13 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
 export const completeToken = async (req: Request, res: Response) => {
     try {
         const { id, token } = FairLaunchCompletedEventSchema.parse(req.body);
-        const tokenData = await prisma.token.findUnique({ where: { id }, include: { user: true } });
-        if (!tokenData) {
+        const tokenData = await prisma.token.findUnique({ where: { id, address: undefined }, include: { user: true } });
+        const tokenDataBlockchain = await getTokenBlockchain(id);
+        if (!tokenData || tokenDataBlockchain?.address !== token) {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
-        await prisma.token.update({ where: { id }, data: { address: token } });
+        await prisma.token.update({ where: { id }, data: { address: tokenDataBlockchain.address } });
         res.status(200).json({ message: 'Token completed successfully' });
         return;
     } catch (error) {
