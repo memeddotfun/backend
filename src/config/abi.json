@@ -3,6 +3,11 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "_memedTokenSale",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
         "name": "_memedBattle",
         "type": "address"
       },
@@ -19,6 +24,33 @@
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableInvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
   },
   {
     "anonymous": false,
@@ -56,153 +88,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "CommitmentMade",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "blockExpiresAt",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "reason",
-        "type": "string"
-      }
-    ],
-    "name": "CreatorBlocked",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "token",
         "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "totalRaised",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "successful",
-        "type": "bool"
-      }
-    ],
-    "name": "FairLaunchCompleted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "minFundingGoal",
-        "type": "uint256"
-      }
-    ],
-    "name": "FairLaunchParamsSet",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "startTime",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "endTime",
-        "type": "uint256"
-      }
-    ],
-    "name": "FairLaunchStarted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "totalRaised",
-        "type": "uint256"
-      }
-    ],
-    "name": "FairLaunchToBeCompleted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
       },
       {
         "indexed": false,
@@ -218,43 +106,6 @@
       }
     ],
     "name": "HeatUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "pair",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "tokenAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "ethAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "liquidity",
-        "type": "uint256"
-      }
-    ],
-    "name": "LiquidityAdded",
     "type": "event"
   },
   {
@@ -288,42 +139,17 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "user",
+        "name": "token",
         "type": "address"
       },
       {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "feeAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "transactionType",
-        "type": "string"
+        "indexed": true,
+        "internalType": "address",
+        "name": "warriorNFT",
+        "type": "address"
       }
     ],
-    "name": "PlatformFeeCollected",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "platformFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "feeDenominator",
-        "type": "uint256"
-      }
-    ],
-    "name": "PlatformFeeSet",
+    "name": "TokenCompletedFairLaunch",
     "type": "event"
   },
   {
@@ -367,6 +193,12 @@
       },
       {
         "indexed": false,
+        "internalType": "bool",
+        "name": "isClaimedByCreator",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "createdAt",
         "type": "uint256"
@@ -374,50 +206,6 @@
     ],
     "name": "TokenCreated",
     "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "id",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "seller",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "tokenAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "ethReceived",
-        "type": "uint256"
-      }
-    ],
-    "name": "TokenSold",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "BASE_PRICE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
   },
   {
     "inputs": [],
@@ -447,59 +235,7 @@
   },
   {
     "inputs": [],
-    "name": "FAIR_LAUNCH_DURATION",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "INITIAL_K",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "INITIAL_REWARDS_PER_HEAT",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "INITIAL_SUPPLY",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "K_BOOST_PER_ENGAGEMENT",
     "outputs": [
       {
         "internalType": "uint256",
@@ -571,64 +307,8 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_token",
         "type": "address"
-      }
-    ],
-    "name": "blockedCreators",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_supply",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_kValue",
-        "type": "uint256"
-      }
-    ],
-    "name": "calculateBondingCurvePrice",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "claim",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
       },
       {
         "internalType": "address",
@@ -637,19 +317,6 @@
       }
     ],
     "name": "claimToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "commitToFairLaunch",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -680,78 +347,45 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "fairLaunchData",
-    "outputs": [
-      {
-        "internalType": "enum MemedFactory_test.FairLaunchStatus",
-        "name": "status",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint256",
-        "name": "fairLaunchStartTime",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalCommitted",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalSold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "kValue",
-        "type": "uint256"
-      },
-      {
         "internalType": "address",
-        "name": "uniswapPair",
+        "name": "_token",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "lastEngagementBoost",
+        "name": "_ethAmount",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "heat",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "lastHeatUpdate",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "createdAt",
+        "name": "_tokenAmount",
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "feeDenominator",
+    "name": "createUniswapLP",
     "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
       {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -817,6 +451,21 @@
             "type": "uint256"
           },
           {
+            "internalType": "uint256",
+            "name": "lastEngagementBoost",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "heat",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastHeatUpdate",
+            "type": "uint256"
+          },
+          {
             "internalType": "bool",
             "name": "isClaimedByCreator",
             "type": "bool"
@@ -827,28 +476,9 @@
             "type": "uint256"
           }
         ],
-        "internalType": "struct MemedFactory_test.TokenData",
+        "internalType": "struct MemedFactory.TokenData",
         "name": "",
         "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      }
-    ],
-    "name": "getFairLaunchActive",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -874,24 +504,122 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_ethAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "getNativeToTokenAmount",
+    "inputs": [],
+    "name": "getMemedBattle",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "tokenAmount",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getMemedEngageToEarn",
+    "outputs": [
+      {
+        "internalType": "contract IMemedEngageToEarn",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "getTokenByAddress",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "warriorNFT",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "creator",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "ticker",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "image",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastRewardAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creatorIncentivesUnlocksAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creatorIncentivesUnlockedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastEngagementBoost",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "heat",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastHeatUpdate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isClaimedByCreator",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "createdAt",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct MemedFactory.TokenData",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -903,19 +631,91 @@
         "internalType": "uint256",
         "name": "_id",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
       }
     ],
-    "name": "getTokenToNativeToken",
+    "name": "getTokenById",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "ethValue",
-        "type": "uint256"
+        "components": [
+          {
+            "internalType": "address",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "warriorNFT",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "creator",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "ticker",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "image",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastRewardAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creatorIncentivesUnlocksAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creatorIncentivesUnlockedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastEngagementBoost",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "heat",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastHeatUpdate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "isClaimedByCreator",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "createdAt",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct MemedFactory.TokenData",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -978,6 +778,21 @@
             "type": "uint256"
           },
           {
+            "internalType": "uint256",
+            "name": "lastEngagementBoost",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "heat",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "lastHeatUpdate",
+            "type": "uint256"
+          },
+          {
             "internalType": "bool",
             "name": "isClaimedByCreator",
             "type": "bool"
@@ -988,55 +803,9 @@
             "type": "uint256"
           }
         ],
-        "internalType": "struct MemedFactory_test.TokenData[]",
+        "internalType": "struct MemedFactory.TokenData[]",
         "name": "",
         "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "getUserCommitment",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tokenAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "claimed",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "refunded",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct MemedFactory_test.Commitment",
-        "name": "",
-        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -1063,81 +832,6 @@
   },
   {
     "inputs": [],
-    "name": "id",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_creator",
-        "type": "address"
-      }
-    ],
-    "name": "isCreatorBlocked",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "blocked",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "blockExpiresAt",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_creator",
-        "type": "address"
-      }
-    ],
-    "name": "isMintable",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "isRefundable",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "memedBattle",
     "outputs": [
       {
@@ -1154,7 +848,7 @@
     "name": "memedEngageToEarn",
     "outputs": [
       {
-        "internalType": "contract IMemedEngageToEarn_test",
+        "internalType": "contract IMemedEngageToEarn",
         "name": "",
         "type": "address"
       }
@@ -1164,12 +858,12 @@
   },
   {
     "inputs": [],
-    "name": "minFundingGoal",
+    "name": "memedTokenSale",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "contract IMemedTokenSale",
         "name": "",
-        "type": "uint256"
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -1190,82 +884,7 @@
   },
   {
     "inputs": [],
-    "name": "platformFeePercentage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "refund",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "sellTokens",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_minFundingGoal",
-        "type": "uint256"
-      }
-    ],
-    "name": "setFairLaunchParams",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_platformFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_feeDenominator",
-        "type": "uint256"
-      }
-    ],
-    "name": "setPlatformFee",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1307,17 +926,17 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_amount",
         "type": "uint256"
       },
       {
         "internalType": "address[]",
-        "name": "",
+        "name": "_path",
         "type": "address[]"
       },
       {
         "internalType": "address",
-        "name": "",
+        "name": "_to",
         "type": "address"
       }
     ],
@@ -1329,36 +948,7 @@
         "type": "uint256[]"
       }
     ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "swapExactForNativeToken",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "",
-        "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "pure",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1422,6 +1012,21 @@
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "lastEngagementBoost",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "heat",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastHeatUpdate",
+        "type": "uint256"
+      },
+      {
         "internalType": "bool",
         "name": "isClaimedByCreator",
         "type": "bool"
@@ -1429,49 +1034,6 @@
       {
         "internalType": "uint256",
         "name": "createdAt",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "tokenIdByAddress",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "tokenIdsByCreator",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1515,7 +1077,7 @@
     "name": "uniswapV2Factory",
     "outputs": [
       {
-        "internalType": "contract IUniswapV2Factory_test",
+        "internalType": "contract IUniswapV2Factory",
         "name": "",
         "type": "address"
       }
@@ -1528,37 +1090,12 @@
     "name": "uniswapV2Router",
     "outputs": [
       {
-        "internalType": "contract IUniswapV2Router02_test",
+        "internalType": "contract IUniswapV2Router02",
         "name": "",
         "type": "address"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "id",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "heat",
-            "type": "uint256"
-          }
-        ],
-        "internalType": "struct HeatUpdate[]",
-        "name": "_heatUpdates",
-        "type": "tuple[]"
-      }
-    ],
-    "name": "updateHeat",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

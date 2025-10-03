@@ -1,19 +1,18 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema, createNonceSchema, FairLaunchCompletedEventSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
+import { connectWalletSchema, createTokenSchema,connectSocialSchema, createNonceSchema, FairLaunchCompletedEventSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
 import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
-import { getEngagementMetrics, getFollowerStats, getLensUsername } from '../services/lens';
+import { getEngagementMetrics, getFollowerStats, getLensAccountId, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
-import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
-import { lastLoggedInAccount } from '@lens-protocol/client/actions';
+import { Social } from '../generated/prisma';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
-}
+}  
 
 const MIN_FOLLOWERS_FOR_TOKEN = 0;
 
@@ -26,8 +25,13 @@ export const createToken = async (req: FileRequest, res: Response) => {
             res.status(400).json({ error: 'Image is required and must be an image' });
             return;
         }
+        const lensUsername = req.user.socials.find((social: Social) => social.type === 'LENS')?.username;
+        if (!lensUsername) {
+            res.status(404).json({ error: 'User must have a LENS account' });
+            return;
+        }
 
-        const followers = await getFollowerStats(req.user.lensUsername);
+        const followers = await getFollowerStats(lensUsername);
         if (followers && followers.followers < MIN_FOLLOWERS_FOR_TOKEN) {
             res.status(400).json({ error: 'User must have at least 8000 followers' });
             return;
@@ -93,12 +97,16 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
             return;
         }
 
-        let user = await prisma.user.findUnique({ where: { lensUsername } });
+        let user = await prisma.social.findFirst({ where: { type: 'LENS', username: lensUsername } });
         if (!user) {
-            user = await prisma.user.create({
-                data: { address, lensUsername }
+            const accountId = await getLensAccountId(address, lensUsername);
+            if (!accountId) {
+                res.status(400).json({ error: 'Lens account not found' });
+                return;
+            }
+            user = await prisma.social.create({
+                data: { type: 'LENS', username: lensUsername, accountId, user: { connect: { address } } }
             });
-            return;
         }
 
         const followers = await getFollowerStats(lensUsername);
@@ -144,6 +152,23 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
     }
 };
 
+export const completeToken = async (req: Request, res: Response) => {
+    try {
+        const { id, token } = FairLaunchCompletedEventSchema.parse(req.body);
+        const tokenData = await prisma.token.findUnique({ where: { id }, include: { user: true } });
+        if (!tokenData) {
+            res.status(404).json({ error: 'Token not found' });
+            return;
+        }
+        await prisma.token.update({ where: { id }, data: { address: token } });
+        res.status(200).json({ message: 'Token completed successfully' });
+        return;
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to complete token' });
+        return;
+    }
+};
+
 export const claimUnclaimedToken = async (req: Request, res: Response) => {
     try {
         const { id } = claimUnclaimedTokensSchema.parse(req.body);
@@ -173,13 +198,8 @@ export const createNonce = async (req: Request, res: Response) => {
     const { address } = createNonceSchema.parse(req.body);
     let user = await prisma.user.findUnique({ where: { address } });
     if (!user) {
-        const lensUsername = await getLensUsername(address);
-        if (!lensUsername) {
-            res.status(400).json({ error: 'Lens username not found' });
-            return;
-        }
         user = await prisma.user.create({
-            data: { address, lensUsername }
+            data: { address }
         });
     }
     const nonce = await prisma.nonce.create({
@@ -241,6 +261,36 @@ export const connectWallet = async (req: Request, res: Response) => {
     }
 };
 
+export const connectSocial = async (req: Request, res: Response) => {
+    try {
+        const { type, username } = connectSocialSchema.parse(req.body);
+        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const existingSocial = await prisma.social.findFirst({ where: { type, username } });
+        if (existingSocial) {
+            res.status(400).json({ error: 'Social already connected' });
+            return;
+        }
+        let accountId = null;
+        if (type === 'LENS') {
+            accountId = await getLensAccountId(user.address, username);
+        }
+        if (!accountId) {
+            res.status(400).json({ error: 'Social account not found' });
+            return;
+        }
+        await prisma.social.create({ data: { type, username, accountId, user: { connect: { id: user.id } } } });
+        res.status(200).json({ message: 'Social connected successfully' });
+        return;
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to connect social' });
+        return;
+    }
+};
+
 export const disconnectWallet = async (req: Request, res: Response) => {
     try {
         const token = req.cookies.token;
@@ -259,7 +309,7 @@ export const disconnectWallet = async (req: Request, res: Response) => {
 
 export const getUser = async (req: Request, res: Response) => {
     try {
-        const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { token: { include: { image: true } } } });
+        const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { socials: true, token: { include: { image: true } } } });
         if (!user) {
             res.status(404).json({ error: 'User not found' });
             return;
@@ -273,102 +323,6 @@ export const getUser = async (req: Request, res: Response) => {
     }
     catch (error) {
         res.status(500).json({ error: 'Failed to get user' });
-        return;
-    }
-};
-
-export const fairLaunchCompletedWebhook = async (req: Request, res: Response) => {
-    try {
-        const { id } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
-        
-        // Add job to queue for asynchronous processing
-        const job = await addTokenDeploymentJob(id);
-        
-        console.log(`Fair launch completion webhook received for ID: ${id}, added to queue as job: ${job.id}`);
-        
-        res.status(200).json({ 
-            message: 'Fair launch completed webhook processed successfully',
-            jobId: job.id,
-            fairLaunchId: id
-        });
-        return;
-    } catch (error) {
-        console.error('Failed to process fair launch completed webhook:', error);
-        
-        if (error instanceof z.ZodError) {
-            res.status(400).json({ 
-                error: 'Invalid webhook data', 
-                details: error.errors 
-            });
-            return;
-        }
-        
-        res.status(500).json({ error: 'Failed to process fair launch completed webhook' });
-        return;
-    }
-};
-
-export const getJobStatus = async (req: Request, res: Response) => {
-    try {
-        const { jobId } = req.params;
-        
-        if (!jobId) {
-            res.status(400).json({ error: 'Job ID is required' });
-            return;
-        }
-        
-        const job = await tokenDeploymentQueue.getJob(jobId);
-        
-        if (!job) {
-            res.status(404).json({ error: 'Job not found' });
-            return;
-        }
-        
-        const state = await job.getState();
-        const progress = job.progress;
-        
-        res.status(200).json({
-            id: job.id,
-            state,
-            progress,
-            data: job.data,
-            createdAt: job.timestamp,
-            processedAt: job.processedOn,
-            finishedAt: job.finishedOn,
-            failedReason: job.failedReason,
-            returnValue: job.returnvalue
-        });
-        return;
-    } catch (error) {
-        console.error('Failed to get job status:', error);
-        res.status(500).json({ error: 'Failed to get job status' });
-        return;
-    }
-};
-
-export const getQueueStats = async (req: Request, res: Response) => {
-    try {
-        const waiting = await tokenDeploymentQueue.getWaiting();
-        const active = await tokenDeploymentQueue.getActive();
-        const completed = await tokenDeploymentQueue.getCompleted();
-        const failed = await tokenDeploymentQueue.getFailed();
-        
-        res.status(200).json({
-            waiting: waiting.length,
-            active: active.length,
-            completed: completed.length,
-            failed: failed.length,
-            jobs: {
-                waiting: waiting.map(job => ({ id: job.id, data: job.data })),
-                active: active.map(job => ({ id: job.id, data: job.data, progress: job.progress })),
-                completed: completed.slice(0, 10).map(job => ({ id: job.id, data: job.data, returnValue: job.returnvalue })),
-                failed: failed.slice(0, 10).map(job => ({ id: job.id, data: job.data, failedReason: job.failedReason }))
-            }
-        });
-        return;
-    } catch (error) {
-        console.error('Failed to get queue stats:', error);
-        res.status(500).json({ error: 'Failed to get queue stats' });
         return;
     }
 };

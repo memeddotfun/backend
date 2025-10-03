@@ -49,6 +49,19 @@ async function getLensUsername(address: string) {
   return result.value.username.localName;
 }
 
+async function getLensAccountId(address: string, handle: string) {
+  const result = await fetchAccount(client, {
+    username: {
+      localName: handle,
+    }
+  });
+  const owner = await getHandleOwner(handle);
+  if (result.isErr() || !result.value || !result.value.metadata || owner !== address) {
+    return null;
+  }
+  return result.value.metadata.id;
+}
+
 async function getHandleOwner(handle: string) {
   const result = await fetchAccount(client, {
     username: {
@@ -176,18 +189,22 @@ const MIN_HEAT_UPDATE = 10;
  * Update all tokens heat
  */
 async function updateAllTokensHeat() {
-  const heatUpdates: { id: bigint, heat: bigint }[] = [];
-  const tokens = await prisma.token.findMany({ include: { user: true } });
+  const heatUpdates: { address: string, heat: bigint }[] = [];
+  const tokens = await prisma.token.findMany({ where: { address: { not: null } }, include: { user: { include: { socials: true } } } });
   for (const token of tokens) {
     const tokenData = await getToken(token.fairLaunchId);
-    if (!tokenData) {
+    if (!tokenData || !token.address) {
       continue;
     }
-    const heat = await getHeat(token.user.lensUsername, tokenData.lastHeatUpdate);
+    const lensUsername = token.user.socials.find(social => social.type === 'LENS')?.username;
+    if (!lensUsername) {
+      continue;
+    }
+    const heat = await getHeat(lensUsername, tokenData.lastHeatUpdate);
     if (!heat || ((heat - tokenData.lastEngagementBoost) < MIN_HEAT_UPDATE && new Date() < tokenData.lastHeatUpdate)) {
       continue;
     }
-    heatUpdates.push({ id: BigInt(token.fairLaunchId), heat: BigInt(heat) });
+    heatUpdates.push({ address: token.address, heat: BigInt(heat) });
   }
   await updateHeat(heatUpdates);
 }
@@ -195,6 +212,7 @@ async function updateAllTokensHeat() {
 export {
   getFollowerStats,
   getLensUsername,
+  getLensAccountId,
   getHandleOwner,
   getFollowers,
   getEngagementMetrics,

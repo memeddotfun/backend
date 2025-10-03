@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SocialType } from '../generated/prisma';
 
 export const createTokenSchema = z.object({
     name: z.string().min(1),
@@ -27,33 +28,23 @@ export const connectWalletSchema = z.object({
     message: z.string().min(1),
 });
 
-
-export const FairLaunchEventSchema = z.object({
-  address: z.string(),
-  blockHash: z.string(),
-  blockNumber: z.string(),
-  id: z.string(),
-  logIndex: z.string(),
-  name: z.literal("FairLaunchToBeCompleted"),
-  totalRaised: z.string(),
-  transactionHash: z.string()
+export const connectSocialSchema = z.object({
+    type: z.nativeEnum(SocialType),
+    username: z.string(),
 });
 
-export const EventResultSchema = z.object({
-  result: z.array(FairLaunchEventSchema)
-});
 
 export const FairLaunchCompletedEventSchema = z.object({
   address: z.string(),
   blockHash: z.string(),
   blockNumber: z.string(),
   id: z.string(),
+  token: z.string(),
+  warriorNFT: z.string(),
   logIndex: z.string(),
   name: z.literal("FairLaunchToBeCompleted"),
   totalRaised: z.string(),
   transactionHash: z.string()
 });
 
-export type FairLaunchEvent = z.infer<typeof FairLaunchEventSchema>;
-export type EventResult = z.infer<typeof EventResultSchema>;
 export type FairLaunchCompletedEvent = z.infer<typeof FairLaunchCompletedEventSchema>;

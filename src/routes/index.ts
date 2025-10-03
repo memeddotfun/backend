@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { connectWallet, createToken, createNonce, fairLaunchCompletedWebhook, getJobStatus, getQueueStats, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens } from '../controllers/controller';
+import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, completeToken, connectSocial } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
 import { sessionMiddleware } from '../middleware/session';
 
@@ -20,14 +20,11 @@ router.post('/create-nonce', createNonce);
 router.post('/connect-wallet', connectWallet);
 router.post('/disconnect-wallet', disconnectWallet);
 router.get('/user', sessionMiddleware, getUser);
+router.post('/complete-token', completeToken);
+router.post('/connect-social', sessionMiddleware, connectSocial);
 router.get('/token/:id', getToken);
 router.get('/tokens', getAllTokens);
-router.post('/webhook/fair-launch/completed', fairLaunchCompletedWebhook);
 router.get('/lens-engagement/:handle', getLensEngagement);
-
-// Job monitoring routes
-router.get('/jobs/:jobId', getJobStatus);
-router.get('/queue/stats', getQueueStats);
 
 
 export default router;

@@ -13,7 +13,7 @@ export const sessionMiddleware = async (req: Request, res: Response, next: NextF
         res.status(401).clearCookie('token').json({ error: 'Unauthorized' });
         return;
     }
-    const session = await prisma.session.findUnique({ where: { session: decoded.sessionId as string }, include: { user: true } });
+    const session = await prisma.session.findUnique({ where: { session: decoded.sessionId as string }, include: { user: { include: { socials: true } } } });
     if (!session) {
         res.status(401).clearCookie('token').json({ error: 'Unauthorized' });
         return;

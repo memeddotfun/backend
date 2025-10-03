@@ -19,10 +19,31 @@ enum Role {
   USER
 }
 
+enum SocialType {
+  LENS
+  X
+  FACEBOOK
+  INSTAGRAM
+  FARCASTER
+  TIKTOK
+  YOUTUBE
+}
+
+model Social {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  type SocialType
+  username String
+  accountId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id String @id @default(uuid())
   address String @unique
-  lensUsername String @unique
+  socials Social[]
   role Role @default(USER)
   session Session[]
   token Token[]
