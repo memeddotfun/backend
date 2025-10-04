@@ -270,17 +270,18 @@ export const connectSocial = async (req: Request, res: Response) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        const existingSocial = await prisma.social.findFirst({ where: { type, username } });
-        if (existingSocial) {
-            res.status(400).json({ error: 'Social already connected' });
-            return;
-        }
         let accountId = null;
         if (type === 'LENS') {
             accountId = await getLensAccountId(user.address, username);
         }
         if (!accountId) {
             res.status(400).json({ error: 'Social account not found' });
+            return;
+        }
+        
+        const existingSocial = await prisma.social.findUnique({ where: { type, accountId } });
+        if (existingSocial) {
+            res.status(400).json({ error: 'Social already connected' });
             return;
         }
         await prisma.social.create({ data: { type, username, accountId, user: { connect: { id: user.id } } } });
