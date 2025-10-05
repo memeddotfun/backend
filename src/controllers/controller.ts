@@ -287,7 +287,7 @@ export const connectSocial = async (req: Request, res: Response) => {
             return;
         }
         
-        const existingSocial = await prisma.social.findUnique({ where: { accountId } });
+        const existingSocial = await prisma.social.findUnique({ where: { accountId, type } });
         if (existingSocial) {
             res.status(400).json({ error: 'Social already connected' });
             return;
