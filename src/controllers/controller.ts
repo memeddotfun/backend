@@ -203,9 +203,10 @@ export const createNonce = async (req: Request, res: Response) => {
             data: { address }
         });
     }
-    const nonce = await prisma.nonce.create({
+    const nonce = randomBytes(32).toString('hex');
+    await prisma.nonce.create({
         data: {
-            nonce: randomBytes(32).toString('hex'),
+            nonce,
             user: { connect: { id: user.id } }
         }
     });
@@ -246,8 +247,15 @@ export const connectWallet = async (req: Request, res: Response) => {
             }
         });
         const token = jwt.sign({ sessionId }, process.env.JWT_SECRET!);
-        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'none', path: '/', maxAge: 1000 * 60 * 60 * 24 * 30 });
-        res.status(200).json({ message: 'Wallet connected successfully' });
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true,
+              path: '/',
+              sameSite: 'none',
+              maxAge: 3600000,
+          }).json({
+            message: 'Authentication successful'
+          });
         return;
     } catch (error) {
         if (error instanceof z.ZodError) {
