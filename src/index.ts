@@ -5,6 +5,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { startHeatUpdateCron } from './cron/heatUpdate';
+import './queues/tokenDeployment';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
