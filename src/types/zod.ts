@@ -39,10 +39,9 @@ export const FairLaunchCompletedEventSchema = z.object({
   blockHash: z.string(),
   blockNumber: z.string(),
   id: z.string(),
-  token: z.string(),
-  warriorNFT: z.string(),
+  lpSupply: z.string(),
   logIndex: z.string(),
-  name: z.literal("FairLaunchToBeCompleted"),
+  name: z.literal("FairLaunchReadyToComplete"),
   totalRaised: z.string(),
   transactionHash: z.string()
 });

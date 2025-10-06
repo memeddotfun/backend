@@ -1,94 +1,126 @@
+import { exec, ExecOptions } from "child_process";
+import { promises as fs } from "fs";
+import path from "path";
 import { factory_contract } from "../config/factory";
 import prisma from "../clients/prisma";
+import config from "../config/config.json";
+
+// Constants
+const CONTRACTS_DIR = path.join(__dirname, "../../../contracts");
+const PARAMETERS_PATH = path.join(CONTRACTS_DIR, "ignition/parameters.json");
+
+// Types
+type Token = {
+  fairLaunchId: string;
+  name: string;
+  ticker: string;
+  creator: string;
+  address: string | null;
+  heat: number;
+  lastEngagementBoost: number;
+  lastHeatUpdate: Date;
+};
+
+type HeatUpdate = {
+  address: string;
+  heat: bigint;
+};
 
 /**
- * Complete a fair launch
+ * Complete a fair launch by deploying token and warrior NFT contracts
  * @param id - The id of the fair launch
+ * @param lpSupply - The lp supply of the fair launch
  * @returns The deployed token address
-*/
-export const completeFairLaunch = async (id: string): Promise<string> => {
+ */
+export const completeFairLaunch = async (id: string, lpSupply: string): Promise<string> => {
   try {
-    const { spawn } = require('child_process');
-    const path = require('path');
+    
     const token = await getToken(id);
-    if(!token) {
-      throw new Error('Token not found');
+    if (!token) {
+      throw new Error("Token not found");
     }
-  
-  return new Promise((resolve, reject) => {
-    const contractsDir = path.join(__dirname, '../../../contracts');
 
-    let output = '';
-    // Use cmd.exe on Windows to properly resolve npx
-    const isWindows = process.platform === 'win32';
-    const command = isWindows ? 'cmd.exe' : 'npx';
-    const args = isWindows ? ['/c', 'npx', 'hardhat', 'deploy-token', '--network', 'lensTestnet', '--creator', token.creator, '--name', token.name, '--ticker', token.ticker, '--id', id] : [
-      'hardhat',
-      'deploy-token',
-      '--network',
-      'lensTestnet',
-      '--creator',
-      token.creator,
-      '--name',
-      token.name,
-      '--ticker',
-      token.ticker,
-      '--id',
-      id
-    ];
-    
-    const deployProcess = spawn(command, args, {
-      cwd: contractsDir,
-      stdio: ['inherit', 'pipe', 'pipe'],
-      shell: isWindows
+    // Prepare deployment parameters
+    const parameters = {
+      TokenModule: {
+        name: token.name,
+        ticker: token.ticker,
+        creator: token.creator,
+        factoryContract: config.factory,
+        engageToEarnContract: config.memedEngageToEarn,
+        lpSupply: `${lpSupply}n`,
+      },
+      WarriorNFTModule: {
+        token: "0x0000000000000000000000000000000000000000",
+        battle: config.memedBattle,
+        factory: config.factory,
+      },
+    };
+
+    // Step 1: Deploy Token
+    await fs.writeFile(PARAMETERS_PATH, JSON.stringify(parameters, null, 2));
+    console.log("Parameters prepared for token deployment");
+
+    const tokenAddress = await deployContract(
+      "./ignition/modules/Token.ts",
+      /TokenModule#MemedToken - (0x[a-fA-F0-9]{40})/
+    );
+    console.log(`Token deployed: ${tokenAddress}`);
+
+    // Step 2: Update parameters and deploy WarriorNFT
+    parameters.WarriorNFTModule.token = tokenAddress;
+    await fs.writeFile(PARAMETERS_PATH, JSON.stringify(parameters, null, 2));
+    console.log("Parameters updated with token address");
+
+    const warriorAddress = await deployContract(
+      "./ignition/modules/WarriorNFT.ts",
+      /WarriorNFTModule#MemedWarriorNFT - (0x[a-fA-F0-9]{40})/
+    );
+    console.log(`WarriorNFT deployed: ${warriorAddress}`);
+    console.log(`Fair launch ${id} completed successfully!`);
+    await factory_contract.completeFairLaunch(id, tokenAddress, warriorAddress);
+
+    // Step 3: Update database
+    await prisma.token.update({
+      where: { fairLaunchId: id },
+      data: { address: tokenAddress },
     });
-    
-    deployProcess.stdout.on('data', (data: Buffer) => {
-      const chunk = data.toString();
-      output += chunk;
-      process.stdout.write(chunk);
-    });
-    
-    deployProcess.stderr.on('data', (data: Buffer) => {
-      const chunk = data.toString();
-      output += chunk;
-      process.stderr.write(chunk);
-    });
-    
-    deployProcess.on('close', async (code: number | null) => {
-      if (code === 0) {
-        // Extract token address from output
-        const tokenMatch = output.match(/MemedToken deployed to: (0x[a-fA-F0-9]{40})/);
-        if (tokenMatch) {
-          const tokenAddress = tokenMatch[1];
-          console.log(`Fair launch ${id} completed successfully, token: ${tokenAddress}`);
-          await prisma.token.update({
-            where: {
-              fairLaunchId: id
-            },
-            data: {
-              address: tokenAddress
-            }
-          });
-          resolve(tokenAddress);
-        } else {
-          reject(new Error('Could not extract token address from deployment output'));
-        }
-      } else {
-        console.error(`Fair launch deployment failed with code ${code}`);
-        reject(new Error(`Deployment failed with exit code ${code}`));
-      }
-    });
-    
-    deployProcess.on('error', (error: Error) => {
-      console.error('Failed to start deployment process:', error);
-      reject(error);
-    });
-    });
-  } catch(e) {
-    console.log(e);
+
+    return tokenAddress;
+  } catch (e) {
+    console.error("Fair launch completion error:", e);
     throw e;
   }
+};
+
+/**
+ * Helper function to deploy a contract using Hardhat Ignition
+ */
+const deployContract = (modulePath: string, addressPattern: RegExp): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const command = `echo y | npx hardhat ignition deploy ${modulePath} --network baseSepolia --parameters ignition/parameters.json --verify --reset`;
+
+    const options: ExecOptions = {
+      cwd: CONTRACTS_DIR,
+    };
+
+    exec(command, options, (err: Error | null, stdout: string, stderr: string) => {
+      if (err) {
+        console.error("Deployment error:", err);
+        console.error("stderr:", stderr);
+        reject(err);
+        return;
+      }
+
+      const match = stdout.match(addressPattern);
+      if (!match) {
+        reject(new Error(`Could not extract address from deployment output`));
+        return;
+      }
+
+      resolve(match[1]);
+    });
+  });
 }
 
 /**
@@ -99,97 +131,100 @@ export const completeFairLaunch = async (id: string): Promise<string> => {
  * @param description - The description of the fair launch
  * @param image - The image of the fair launch
  * @returns The fair launch id
-*/
-
-export const createFairLaunch = async (creator: string, name: string, ticker: string, description: string, image: string): Promise<string> => {
+ */
+export const createFairLaunch = async (
+  creator: string,
+  name: string,
+  ticker: string,
+  description: string,
+  image: string
+): Promise<string> => {
   try {
-    const tx = await factory_contract.startFairLaunch(creator, name, ticker, description, image);
+    const tx = await factory_contract.startFairLaunch(
+      creator,
+      name,
+      ticker,
+      description,
+      image
+    );
     const receipt = await tx.wait();
+
     for (const log of receipt.logs) {
       try {
-        const parsed = factory_contract.interface.parseLog(log)
-        if(parsed && parsed.name === "FairLaunchStarted") {
+        const parsed = factory_contract.interface.parseLog(log);
+        if (parsed && parsed.name === "FairLaunchStarted") {
           return parsed.args[0].toString();
         }
       } catch {
-        // not this contract’s event
+        // Not this contract's event
       }
     }
+
     return "0";
-  } catch(e) {
-    console.log(e);
+  } catch (e) {
+    console.error("Create fair launch error:", e);
     return "0";
   }
 }
 
- 
+/**
+ * Claim unclaimed tokens
+ * @param id - The id of the fair launch
+ * @param creator - The creator address
+ */
 export const claimUnclaimedTokens = async (id: string, creator: string): Promise<void> => {
   try {
     const tx = await factory_contract.claimToken(id, creator);
     await tx.wait();
-  } catch(e) {
-    console.log(e);
+  } catch (e) {
+    console.error("Claim unclaimed tokens error:", e);
     throw e;
   }
-}
+};
 
 /**
- * Get a token
+ * Get a token by fair launch ID
  * @param id - The id of the fair launch
- * @returns The token
-*/
-type Token = {
-  fairLaunchId: string;
-  name: string;
-  ticker: string;
-  creator: string;
-  address: string | null;
-  heat: number;
-  lastEngagementBoost: number;
-  lastHeatUpdate: Date;
-}
+ * @returns The token data or null if not found
+ */
 export const getToken = async (id: string): Promise<Token | null> => {
-  const tokenData = await factory_contract.tokenData(BigInt(id));
-  const fairLaunchData = await factory_contract.fairLaunchData(BigInt(id));
-  if(tokenData.name.length === 0) {
-    return null;
-  }
-  return {
-    fairLaunchId: id,
-    creator: tokenData.creator,
-    name: tokenData.name,
-    ticker: tokenData.ticker,
-    address: tokenData.token !== "0x0000000000000000000000000000000000000000" ? tokenData.token : null,
-    heat: parseInt(fairLaunchData.heat.toString()),
-    lastEngagementBoost: parseInt(fairLaunchData.lastEngagementBoost.toString()),
-    lastHeatUpdate: new Date(parseInt(fairLaunchData.lastHeatUpdate.toString())*1000)
-  }
-}
+  try {
+    const tokenData = await factory_contract.tokenData(BigInt(id));
+    const fairLaunchData = await factory_contract.fairLaunchData(BigInt(id));
 
-type HeatUpdate = {
-  address: string;
-  heat: bigint;
-}
+    if (tokenData.name.length === 0) {
+      return null;
+    }
+
+    return {
+      fairLaunchId: id,
+      creator: tokenData.creator,
+      name: tokenData.name,
+      ticker: tokenData.ticker,
+      address:
+        tokenData.token !== "0x0000000000000000000000000000000000000000"
+          ? tokenData.token
+          : null,
+      heat: parseInt(fairLaunchData.heat.toString()),
+      lastEngagementBoost: parseInt(fairLaunchData.lastEngagementBoost.toString()),
+      lastHeatUpdate: new Date(parseInt(fairLaunchData.lastHeatUpdate.toString()) * 1000),
+    };
+  } catch (e) {
+    console.error("Get token error:", e);
+    throw e;
+  }
+};
 
 /**
- * Update the heat of a fair launch
- * @param heatUpdates - The heat updates
+ * Update the heat of fair launches
+ * @param heatUpdates - Array of heat updates
  */
-export const updateHeat = async (heatUpdates: HeatUpdate[]) => {
-  const tx = await factory_contract.updateHeat(heatUpdates);
-  await tx.wait();
-}
-
-async function test() {
-  try { 
- await createFairLaunch("0x0000000000000000000000000000000009000000", "joshp", "josh", "JOSH", "https://josh.com");
-for(let i = 0; i < 5; i++) {
-  const tx = await factory_contract.commitToFairLaunch(BigInt(1));
-  await tx.wait();
-  console.log(i);
-}
-} catch(e) {
-  console.log(e);
-}
-}
-//test();
+export const updateHeat = async (heatUpdates: HeatUpdate[]): Promise<void> => {
+  try {
+    const tx = await factory_contract.updateHeat(heatUpdates);
+    await tx.wait();
+  } catch (e) {
+    console.error("Update heat error:", e);
+    throw e;
+  }
+};

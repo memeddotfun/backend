@@ -154,24 +154,6 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
     }
 };
 
-export const completeToken = async (req: Request, res: Response) => {
-    try {
-        const { id, token } = FairLaunchCompletedEventSchema.parse(req.body);
-        const tokenData = await prisma.token.findUnique({ where: { id, address: undefined }, include: { user: true } });
-        const tokenDataBlockchain = await getTokenBlockchain(id);
-        if (!tokenData || tokenDataBlockchain?.address !== token) {
-            res.status(404).json({ error: 'Token not found' });
-            return;
-        }
-        await prisma.token.update({ where: { id }, data: { address: tokenDataBlockchain.address } });
-        res.status(200).json({ message: 'Token completed successfully' });
-        return;
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to complete token' });
-        return;
-    }
-};
-
 export const claimUnclaimedToken = async (req: Request, res: Response) => {
     try {
         const { id } = claimUnclaimedTokensSchema.parse(req.body);
@@ -393,10 +375,10 @@ export const getLensEngagement = async (req: Request, res: Response) => {
 
 export const fairLaunchCompletedWebhook = async (req: Request, res: Response) => {
     try {
-        const { id } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
+        const { id, lpSupply } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
         
         // Add job to queue for asynchronous processing
-        const job = await addTokenDeploymentJob(id);
+        const job = await addTokenDeploymentJob(id, lpSupply);
         
         console.log(`Fair launch completion webhook received for ID: ${id}, added to queue as job: ${job.id}`);
         
