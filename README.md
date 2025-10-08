@@ -1,6 +1,6 @@
-# Memed Backend
+# Memed.Fun Backend
 
-Backend for Memed.fun - A Lens Protocol-powered meme token platform with fair launches, NFT battles, and engagement-based rewards.
+Backend for Memed.Fun - A meme token platform with fair launches, NFT battles, and engagement-based rewards.
 
 ## 🚀 Features
 
@@ -55,54 +55,7 @@ yarn install
 npm install
 ```
 
-3. Create a `.env` file based on the configuration below:
-
-```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/memed?schema=public"
-
-# Redis
-REDIS_HOST="localhost"
-REDIS_PORT=6379
-REDIS_PASSWORD=""
-
-# Server
-PORT=3001
-NODE_ENV="development"
-FRONTEND_URL="http://localhost:5173"
-
-# JWT Secret
-JWT_SECRET="your-secure-jwt-secret-here"
-
-# Blockchain Configuration
-BLOCKCHAIN_RPC_URL="https://base-sepolia.g.alchemy.com/v2/your-api-key"
-BLOCKCHAIN_CHAIN_ID=84532
-PRIVATE_KEY="your-wallet-private-key"
-
-# Smart Contract Addresses
-FACTORY_ADDRESS="0x..."
-TOKEN_SALE_ADDRESS="0x..."
-WARRIOR_NFT_ADDRESS="0x..."
-BATTLE_ADDRESS="0x..."
-BATTLE_RESOLVER_ADDRESS="0x..."
-ENGAGE_TO_EARN_ADDRESS="0x..."
-
-# AWS S3
-AWS_ACCESS_KEY_ID="your-aws-access-key"
-AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
-AWS_REGION="us-east-1"
-AWS_S3_BUCKET="memed-media"
-
-# IPFS/Pinata
-PINATA_JWT="your-pinata-jwt-token"
-PINATA_GATEWAY_URL="https://gateway.pinata.cloud/ipfs/"
-
-# Lens Protocol
-LENS_API_ENDPOINT="https://api-v2.lens.dev"
-
-# Google Cloud (for BigQuery analytics - optional)
-GOOGLE_APPLICATION_CREDENTIALS="path/to/gcloud.json"
-```
+3. Rename the `.env.sample` to `.env` file and configure variables.
 
 4. Set up the database:
 
@@ -1056,7 +1009,7 @@ The backend interacts with the following smart contracts on Base:
 5. **MemedBattleResolver** - Resolves battle outcomes
 6. **MemedEngageToEarn** - Distributes engagement rewards
 
-See the `/contracts` directory for smart contract documentation.
+See the **[Contracts Repository](https://github.com/memeddotfun/contracts)** for smart contract documentation.
 
 ## 📝 License
 
@@ -1066,7 +1019,6 @@ This project is licensed under the ISC License.
 
 For questions and support:
 - Open an issue in the GitHub repository
-- Check existing documentation in `/contracts` and `/frontend`
 - Review API endpoints in this README
 
 ---
