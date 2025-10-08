@@ -197,6 +197,7 @@ export const createNonce = async (req: Request, res: Response) => {
     res.status(200).json({ nonce });
     return;
     } catch (error) {
+        console.error('Failed to create nonce:', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({ 
                 error: 'Validation failed', 
@@ -373,7 +374,7 @@ export const getLensEngagement = async (req: Request, res: Response) => {
 
 
 
-export const fairLaunchCompletedWebhook = async (req: Request, res: Response) => {
+export const completeToken = async (req: Request, res: Response) => {
     try {
         const { id, lpSupply } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
         

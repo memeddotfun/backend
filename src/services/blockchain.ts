@@ -35,10 +35,15 @@ type HeatUpdate = {
 export const completeFairLaunch = async (id: string, lpSupply: string): Promise<string> => {
   try {
     
-    const token = await getToken(id);
+    /*const token = await getToken(id);
     if (!token) {
       throw new Error("Token not found");
-    }
+    }*/
+    const token = {
+      name: "Test Token",
+      ticker: "TEST",
+      creator: "0x0000000000000000000000000000000000000000",
+    };
 
     // Prepare deployment parameters
     const parameters = {
@@ -78,13 +83,13 @@ export const completeFairLaunch = async (id: string, lpSupply: string): Promise<
     );
     console.log(`WarriorNFT deployed: ${warriorAddress}`);
     console.log(`Fair launch ${id} completed successfully!`);
-    await factory_contract.completeFairLaunch(id, tokenAddress, warriorAddress);
+    /*await factory_contract.completeFairLaunch(id, tokenAddress, warriorAddress);
 
     // Step 3: Update database
     await prisma.token.update({
       where: { fairLaunchId: id },
       data: { address: tokenAddress },
-    });
+    });*/
 
     return tokenAddress;
   } catch (e) {
