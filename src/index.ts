@@ -5,6 +5,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { startHeatUpdateCron } from './cron/heatUpdate';
+import { startBattleResolveCron } from './cron/battleResolve';
 import './queues/tokenDeployment';
 
 const app = express();
@@ -25,6 +26,7 @@ app.listen(PORT, () => {
   
   // Start cron jobs
   startHeatUpdateCron();
+  startBattleResolveCron();
 });
 
 // Handle unhandled promise rejections
