@@ -1023,4 +1023,4 @@ For questions and support:
 
 ---
 
-Built with ❤️ for the Memed.fun platform
+Built with ❤️ for the Memed.Fun platform
