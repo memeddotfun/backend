@@ -59,7 +59,7 @@ async function getLensAccountId(address: string, handle: string) {
   if (result.isErr() || !result.value || owner.toLowerCase() !== address.toLowerCase()) {
     return null;
   }
-  return result.value.address;
+  return `LENS:${result.value.address}`;
 }
 
 async function getHandleOwner(handle: string) {

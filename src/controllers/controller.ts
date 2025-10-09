@@ -9,7 +9,6 @@ import { getEngagementMetrics, getFollowerStats, getLensAccountId, getLensUserna
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
-import { getToken as getTokenBlockchain } from '../services/blockchain';
 import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
 
 interface FileRequest extends Request {
