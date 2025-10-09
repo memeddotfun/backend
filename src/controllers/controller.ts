@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema,connectSocialSchema, createNonceSchema, FairLaunchCompletedEventSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
+import { connectWalletSchema, createTokenSchema, connectSocialSchema, createNonceSchema, FairLaunchCompletedEventSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
 import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
@@ -10,10 +10,11 @@ import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
 import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
+import { verifyWebhook } from '../functions/webhookVerify';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
-}  
+}
 
 const MIN_FOLLOWERS_FOR_TOKEN = 0;
 
@@ -66,12 +67,12 @@ export const createToken = async (req: FileRequest, res: Response) => {
 
     } catch (error) {
         if (error instanceof z.ZodError) {
-            res.status(400).json({ 
-                error: 'Validation failed', 
-                details: error.errors 
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
             });
             return;
-        }   
+        }
         res.status(500).json({ error: 'Failed to create token' });
         return;
     }
@@ -86,7 +87,7 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'User must be an admin' });
             return;
         }
-        
+
         if (!image || !image.mimetype.startsWith('image/')) {
             res.status(400).json({ error: 'Image is required and must be an image' });
             return;
@@ -142,12 +143,12 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
         return;
     } catch (error) {
         if (error instanceof z.ZodError) {
-            res.status(400).json({ 
-                error: 'Validation failed', 
-                details: error.errors 
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
             });
             return;
-        }   
+        }
         res.status(500).json({ error: 'Failed to create unclaimed tokens' });
         return;
     }
@@ -179,31 +180,31 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
 
 export const createNonce = async (req: Request, res: Response) => {
     try {
-    const { address } = createNonceSchema.parse(req.body);
-    let user = await prisma.user.findUnique({ where: { address } });
-    if (!user) {
-        user = await prisma.user.create({
-            data: { address }
-        });
-    }
-    const nonce = randomBytes(32).toString('hex');
-    await prisma.nonce.create({
-        data: {
-            nonce,
-            user: { connect: { id: user.id } }
+        const { address } = createNonceSchema.parse(req.body);
+        let user = await prisma.user.findUnique({ where: { address } });
+        if (!user) {
+            user = await prisma.user.create({
+                data: { address }
+            });
         }
-    });
-    res.status(200).json({ nonce });
-    return;
+        const nonce = randomBytes(32).toString('hex');
+        await prisma.nonce.create({
+            data: {
+                nonce,
+                user: { connect: { id: user.id } }
+            }
+        });
+        res.status(200).json({ nonce });
+        return;
     } catch (error) {
         console.error('Failed to create nonce:', error);
         if (error instanceof z.ZodError) {
-            res.status(400).json({ 
-                error: 'Validation failed', 
-                details: error.errors 
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
             });
             return;
-        }   
+        }
         res.status(500).json({ error: 'Failed to create nonce' });
         return;
     }
@@ -234,21 +235,21 @@ export const connectWallet = async (req: Request, res: Response) => {
         res.cookie('token', token, {
             httpOnly: true,
             secure: true,
-              path: '/',
-              sameSite: 'none',
-              maxAge: 3600000,
-          }).json({
+            path: '/',
+            sameSite: 'none',
+            maxAge: 3600000,
+        }).json({
             message: 'Authentication successful'
-          });
+        });
         return;
     } catch (error) {
         if (error instanceof z.ZodError) {
-            res.status(400).json({ 
-                error: 'Validation failed', 
-                details: error.errors 
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
             });
             return;
-        }   
+        }
         res.status(500).json({ error: 'Failed to connect wallet' });
         return;
     }
@@ -270,14 +271,14 @@ export const connectSocial = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'Social account not found' });
             return;
         }
-        
-        const existingSocial = await prisma.social.findFirst({ 
-            where: { 
+
+        const existingSocial = await prisma.social.findFirst({
+            where: {
                 OR: [
-                    { accountId, type }, 
+                    { accountId, type },
                     { type, userId: req.user.id }
-                ] 
-            } 
+                ]
+            }
         });
         if (existingSocial) {
             res.status(400).json({ error: 'Social already connected' });
@@ -297,7 +298,7 @@ export const disconnectWallet = async (req: Request, res: Response) => {
         const token = req.cookies.token;
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { sessionId: string };
         await prisma.session.delete({ where: { session: decoded.sessionId } });
-        
+
         res.clearCookie('token');
         res.status(200).json({ message: 'Wallet disconnected successfully' });
         return;
@@ -382,14 +383,31 @@ export const getLensEngagement = async (req: Request, res: Response) => {
 
 export const completeToken = async (req: Request, res: Response) => {
     try {
+        const nonce = req.headers['x-qn-nonce'] as string;
+        const timestamp = req.headers['x-qn-timestamp'] as string;
+        const givenSignature = req.headers['x-qn-signature'] as string;
+
+        if (!nonce || !timestamp || !givenSignature) {
+            res.status(400).json({ error: 'Missing required headers' });
+            return;
+        }
+
+        const isValid = verifyWebhook(
+            req.body.toString('utf8'),
+            nonce,
+            timestamp,
+            givenSignature
+        );
+        if (!isValid) {
+            res.status(400).json({ error: 'Invalid signature' });
+            return;
+        }
+
         const { id, lpSupply } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
-        
-        // Add job to queue for asynchronous processing
+
         const job = await addTokenDeploymentJob(id, lpSupply);
-        
-        console.log(`Fair launch completion webhook received for ID: ${id}, added to queue as job: ${job.id}`);
-        
-        res.status(200).json({ 
+
+        res.status(200).json({
             message: 'Fair launch completed webhook processed successfully',
             jobId: job.id,
             fairLaunchId: id
@@ -397,15 +415,15 @@ export const completeToken = async (req: Request, res: Response) => {
         return;
     } catch (error) {
         console.error('Failed to process fair launch completed webhook:', error);
-        
+
         if (error instanceof z.ZodError) {
-            res.status(400).json({ 
-                error: 'Invalid webhook data', 
-                details: error.errors 
+            res.status(400).json({
+                error: 'Invalid webhook data',
+                details: error.errors
             });
             return;
         }
-        
+
         res.status(500).json({ error: 'Failed to process fair launch completed webhook' });
         return;
     }
@@ -414,22 +432,22 @@ export const completeToken = async (req: Request, res: Response) => {
 export const getJobStatus = async (req: Request, res: Response) => {
     try {
         const { jobId } = req.params;
-        
+
         if (!jobId) {
             res.status(400).json({ error: 'Job ID is required' });
             return;
         }
-        
+
         const job = await tokenDeploymentQueue.getJob(jobId);
-        
+
         if (!job) {
             res.status(404).json({ error: 'Job not found' });
             return;
         }
-        
+
         const state = await job.getState();
         const progress = job.progress;
-        
+
         res.status(200).json({
             id: job.id,
             state,
@@ -455,7 +473,7 @@ export const getQueueStats = async (req: Request, res: Response) => {
         const active = await tokenDeploymentQueue.getActive();
         const completed = await tokenDeploymentQueue.getCompleted();
         const failed = await tokenDeploymentQueue.getFailed();
-        
+
         res.status(200).json({
             waiting: waiting.length,
             active: active.length,
