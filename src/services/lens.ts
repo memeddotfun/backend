@@ -206,6 +206,9 @@ async function updateAllTokensHeat() {
     }
     heatUpdates.push({ address: token.address, heat: BigInt(heat) });
   }
+  if (heatUpdates.length === 0) {
+    return;
+  }
   await updateHeat(heatUpdates);
 }
 
