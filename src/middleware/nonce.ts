@@ -3,6 +3,10 @@ import { verifyMessage } from 'ethers';
 import prisma from '../clients/prisma';
 
 export const nonceMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.headers['Nonce']) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
   const { message, signature } = JSON.parse(req.headers['Nonce'] as string);
   if (!message || !signature) {
     res.status(401).json({ error: 'Unauthorized' });
