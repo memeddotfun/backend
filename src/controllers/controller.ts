@@ -299,8 +299,12 @@ export const disconnectWallet = async (req: Request, res: Response) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { sessionId: string };
         await prisma.session.delete({ where: { session: decoded.sessionId } });
 
-        res.clearCookie('token');
-        res.status(200).json({ message: 'Wallet disconnected successfully' });
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: true,
+            path: '/',
+            sameSite: 'none'
+        }).json({ message: 'Wallet disconnected successfully' });
         return;
     }
     catch (error) {

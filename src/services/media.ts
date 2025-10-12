@@ -14,7 +14,7 @@ type Media = {
  * @returns The media file's CID and S3 key
  */
 export const uploadMedia = async (file: Express.Multer.File): Promise<Media> => {
-    const fileBlob = new File([file.buffer], file.originalname, { type: file.mimetype });
+    const fileBlob = new File([new Uint8Array(file.buffer)], file.originalname, { type: file.mimetype });
     const response = await pinata.upload.public.file(fileBlob);
     const Key = `token-images/${response.cid}.${file.mimetype.split("/")[1]}`;
     await s3Client.send(new PutObjectCommand({

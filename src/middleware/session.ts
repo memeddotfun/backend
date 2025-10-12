@@ -10,12 +10,22 @@ export const sessionMiddleware = async (req: Request, res: Response, next: NextF
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET!);
     if (!decoded || typeof decoded === 'string' || !decoded.sessionId) {
-        res.status(401).clearCookie('token').json({ error: 'Unauthorized' });
+        res.status(401).clearCookie('token', {
+            httpOnly: true,
+            secure: true,
+            path: '/',
+            sameSite: 'none'
+        }).json({ error: 'Unauthorized' });
         return;
     }
     const session = await prisma.session.findUnique({ where: { session: decoded.sessionId as string }, include: { user: { include: { socials: true } } } });
     if (!session) {
-        res.status(401).clearCookie('token').json({ error: 'Unauthorized' });
+        res.status(401).clearCookie('token', {
+            httpOnly: true,
+            secure: true,
+            path: '/',
+            sameSite: 'none'
+        }).json({ error: 'Unauthorized' });
         return;
     }
     req.user = session.user;
