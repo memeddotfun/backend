@@ -28,7 +28,6 @@ export const getToken = async (id: string): Promise<Token | null> => {
   try {
     const tokenData = await factory_contract.tokenData(BigInt(id));
     const tokenRewardData = await factory_contract.tokenRewardData(BigInt(id));
-
     if (tokenData.name.length === 0) {
       return null;
     }
@@ -49,7 +48,7 @@ export const getToken = async (id: string): Promise<Token | null> => {
   } catch (e) {
     console.error("Get token error:", e);
     throw e;
-  }
+  } 
 };
 
 /**
@@ -116,11 +115,10 @@ export const createFairLaunch = async (
       image
     );
     const receipt = await tx.wait();
-
     for (const log of receipt.logs) {
       try {
         const parsed = factory_contract.interface.parseLog(log);
-        if (parsed && parsed.name === "FairLaunchStarted") {
+        if (parsed && parsed.name === "TokenCreated") {
           return parsed.args[0].toString();
         }
       } catch {
