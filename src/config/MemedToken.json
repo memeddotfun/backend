@@ -671,7 +671,7 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "immutableReferences": {
-    "11620": [
+    "13141": [
       {
         "length": 32,
         "start": 1597
@@ -681,7 +681,7 @@
         "start": 3063
       }
     ],
-    "11627": [
+    "13148": [
       {
         "length": 32,
         "start": 2011
@@ -697,5 +697,5 @@
     ]
   },
   "inputSourceName": "project/contracts/MemedToken.sol",
-  "buildInfoId": "solc-0_8_28-01974c1b8113ada42963aa3e398e48a2378bcd3c"
+  "buildInfoId": "solc-0_8_28-fd01acfa9dd870afcff5d27bfd331ae6b2ead7c9"
 }

@@ -907,7 +907,7 @@
   "linkReferences": {},
   "deployedLinkReferences": {},
   "immutableReferences": {
-    "13690": [
+    "16429": [
       {
         "length": 32,
         "start": 4217
@@ -925,7 +925,7 @@
         "start": 8857
       }
     ],
-    "13693": [
+    "16432": [
       {
         "length": 32,
         "start": 1694
@@ -947,7 +947,7 @@
         "start": 4062
       }
     ],
-    "13695": [
+    "16434": [
       {
         "length": 32,
         "start": 2353
@@ -987,5 +987,5 @@
     ]
   },
   "inputSourceName": "project/contracts/MemedWarriorNFT.sol",
-  "buildInfoId": "solc-0_8_28-8a335b4dbecdf22c2c747ce20952671aee752173"
+  "buildInfoId": "solc-0_8_28-fd01acfa9dd870afcff5d27bfd331ae6b2ead7c9"
 }

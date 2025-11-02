@@ -68,7 +68,6 @@ export const completeFairLaunch = async (id: string, lpSupply: string): Promise<
     if (token.address) {
       return token.address;
     }
-
     const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, token.creator, config.factory, config.memedEngageToEarn, BigInt(lpSupply));
     await tokenContract.waitForDeployment();
     const tokenAddress = await tokenContract.getAddress();
