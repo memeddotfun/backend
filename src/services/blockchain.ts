@@ -126,10 +126,10 @@ export const createFairLaunch = async (
       }
     }
 
-    return "0";
+    throw new Error("Token not created");
   } catch (e) {
     console.error("Create fair launch error:", e);
-    return "0";
+    throw e;
   }
 }
 
