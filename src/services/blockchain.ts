@@ -67,7 +67,7 @@ export const completeFairLaunch = async (id: string): Promise<string> => {
     if (token.address) {
       return token.address;
     }
-    const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, token.creator, config.factory, config.memedEngageToEarn);
+    const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, token.creator, config.factory, config.memedEngageToEarn, config.memedTokenSale);
     await tokenContract.waitForDeployment();
     const tokenAddress = await tokenContract.getAddress();
     const warriorNFTContract = await memedWarriorNFT_contract.deploy(tokenAddress, config.memedBattle, config.factory);
