@@ -54,10 +54,9 @@ export const getToken = async (id: string): Promise<Token | null> => {
 /**
  * Complete a fair launch by deploying token and warrior NFT contracts
  * @param id - The id of the fair launch
- * @param lpSupply - The lp supply of the fair launch
  * @returns The deployed token address
  */
-export const completeFairLaunch = async (id: string, lpSupply: string): Promise<string> => {
+export const completeFairLaunch = async (id: string): Promise<string> => {
   try {
     
     const token = await getToken(id);
@@ -68,7 +67,7 @@ export const completeFairLaunch = async (id: string, lpSupply: string): Promise<
     if (token.address) {
       return token.address;
     }
-    const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, token.creator, config.factory, config.memedEngageToEarn, BigInt(lpSupply));
+    const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, token.creator, config.factory, config.memedEngageToEarn);
     await tokenContract.waitForDeployment();
     const tokenAddress = await tokenContract.getAddress();
     const warriorNFTContract = await memedWarriorNFT_contract.deploy(tokenAddress, config.memedBattle, config.factory);

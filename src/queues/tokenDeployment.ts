@@ -5,7 +5,6 @@ import { completeFairLaunch } from '../services/blockchain';
 // Define job data interface
 export interface TokenDeploymentJobData {
   fairLaunchId: string;
-  lpSupply: string;
   retryCount?: number;
 }
 
@@ -27,7 +26,7 @@ export const tokenDeploymentQueue = new Queue('token-deployment', {
 export const tokenDeploymentWorker = new Worker(
   'token-deployment',
   async (job: Job<TokenDeploymentJobData>) => {
-    const { fairLaunchId, lpSupply } = job.data;
+    const { fairLaunchId } = job.data;
     
     console.log(`Processing token deployment for fair launch ID: ${fairLaunchId}`);
     
@@ -36,7 +35,7 @@ export const tokenDeploymentWorker = new Worker(
       await job.updateProgress(10);
       
       // Execute the token deployment
-      const tokenAddress = await completeFairLaunch(fairLaunchId, lpSupply);
+      const tokenAddress = await completeFairLaunch(fairLaunchId);
       
       // Update job progress
       await job.updateProgress(100);
@@ -73,11 +72,11 @@ tokenDeploymentWorker.on('stalled', (jobId: string) => {
 });
 
 // Add a job to the queue
-export const addTokenDeploymentJob = async (fairLaunchId: string, lpSupply: string) => {
+export const addTokenDeploymentJob = async (fairLaunchId: string) => {
   try {
     const job = await tokenDeploymentQueue.add(
       'deploy-token',
-      { fairLaunchId, lpSupply },
+      { fairLaunchId },
       {
         priority: 1, // Higher priority for faster processing
         delay: 0,    // No delay

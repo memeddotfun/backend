@@ -407,9 +407,9 @@ export const completeToken = async (req: Request, res: Response) => {
             return;
         }
 
-        const { id, lpSupply } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
+        const { id } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
 
-        const job = await addTokenDeploymentJob(id, lpSupply);
+        const job = await addTokenDeploymentJob(id);
 
         res.status(200).json({
             message: 'Fair launch completed webhook processed successfully',

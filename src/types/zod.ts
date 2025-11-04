@@ -39,10 +39,8 @@ export const FairLaunchCompletedEventSchema = z.object({
   blockHash: z.string(),
   blockNumber: z.string(),
   id: z.string(),
-  lpSupply: z.string(),
   logIndex: z.string(),
   name: z.literal("FairLaunchReadyToComplete"),
-  totalRaised: z.string(),
   transactionHash: z.string()
 });
 
