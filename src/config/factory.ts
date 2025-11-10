@@ -1,9 +1,9 @@
 import { ethers } from 'ethers';
-import factoryABI from './MemedFactory_test.json';
+import factoryABI from './MemedFactory.json';
 import config from './config.json';
 import memedToken from './MemedToken.json';
 import memedWarriorNFT from './MemedWarriorNFT.json';
-import memedTokenSale from './MemedTokenSale_test.json';
+import memedTokenSale from './MemedTokenSale.json';
 import memedBattleResolver from './MemedBattleResolver.json';
 
 if (!process.env.ALCHEMY_API_KEY || !process.env.EXECUTOR_PRIVATE_KEY) {
