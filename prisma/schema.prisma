@@ -69,6 +69,7 @@ model Metadata {
   id String @id @default(uuid())
   cid String @unique
   name String
+  ticker String
   description String
   imageKey String
   token Token[]

@@ -57,6 +57,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
                         cid: media.cid,
                         imageKey: media.key,
                         name,
+                        ticker,
                         description,
                     }
                 },
@@ -136,6 +137,7 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
                     create: {
                         cid: media.cid,
                         imageKey: media.key,
+                        ticker,
                         name,
                         description,
                     }
@@ -391,34 +393,33 @@ export const getLensEngagement = async (req: Request, res: Response) => {
 
 export const completeToken = async (req: Request, res: Response) => {
     try {
-        const nonce = req.headers['x-qn-nonce'] as string;
-        const timestamp = req.headers['x-qn-timestamp'] as string;
-        const givenSignature = req.headers['x-qn-signature'] as string;
+        const signature = req.headers['X-Alchemy-Signature'] as string;
 
-        if (!nonce || !timestamp || !givenSignature) {
+        if (!signature) {
             res.status(400).json({ error: 'Missing required headers' });
             return;
         }
 
         const isValid = verifyWebhook(
-            req.body.toString('utf8'),
-            nonce,
-            timestamp,
-            givenSignature
+            JSON.stringify(req.body),
+            signature,
+            process.env.ALCHEMY_WEBHOOK_SIGNING_KEY!
         );
         if (!isValid) {
             res.status(400).json({ error: 'Invalid signature' });
             return;
         }
 
-        const { id } = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
+        const parsed = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
 
-        const job = await addTokenDeploymentJob(id);
+        const fairLaunchId = BigInt(parsed.event.log.topics[1]).toString();
+
+        const job = await addTokenDeploymentJob(fairLaunchId);
 
         res.status(200).json({
             message: 'Fair launch completed webhook processed successfully',
             jobId: job.id,
-            fairLaunchId: id
+            fairLaunchId: fairLaunchId
         });
         return;
     } catch (error) {

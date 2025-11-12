@@ -26,17 +26,21 @@ type HeatUpdate = {
  */
 export const getToken = async (id: string): Promise<Token | null> => {
   try {
-    const tokenData = await factory_contract.tokenData(BigInt(id));
-    const tokenRewardData = await factory_contract.tokenRewardData(BigInt(id));
-    if (tokenData.name.length === 0) {
+    const token = await prisma.token.findUnique({
+      where: { fairLaunchId: id },
+      include: { metadata: true },
+    });
+    if (!token) {
       return null;
     }
+    const tokenData = await factory_contract.tokenData(BigInt(id));
+    const tokenRewardData = await factory_contract.tokenRewardData(BigInt(id));
 
     return {
       fairLaunchId: id,
       creator: tokenData.creator,
-      name: tokenData.name,
-      ticker: tokenData.ticker,
+      name: token.metadata.name,
+      ticker: token.metadata.ticker,
       address:
         tokenData.token !== "0x0000000000000000000000000000000000000000"
           ? tokenData.token
