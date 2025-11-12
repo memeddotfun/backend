@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import multer from 'multer';
 import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getJobStatus, getQueueStats, completeToken } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
@@ -24,7 +24,7 @@ router.post('/connect-social', sessionMiddleware, connectSocial);
 router.get('/token/:id', getToken);
 router.get('/tokens', getAllTokens);
 router.get('/lens-engagement/:handle', getLensEngagement);
-router.post('/complete-token', completeToken);
+router.post('/complete-token', express.raw({ type: "application/json" }), completeToken);
 router.get('/job-status/:jobId', getJobStatus);
 router.get('/queue-stats', getQueueStats);
 

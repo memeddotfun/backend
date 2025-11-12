@@ -11,6 +11,7 @@ import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
 import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
 import { verifyWebhook } from '../functions/webhookVerify';
+import { memedTokenSale_contract } from '../config/factory';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
@@ -393,15 +394,14 @@ export const getLensEngagement = async (req: Request, res: Response) => {
 
 export const completeToken = async (req: Request, res: Response) => {
     try {
-        const signature = req.headers['X-Alchemy-Signature'] as string;
-
+        const signature = req.headers['x-alchemy-signature'] as string;
         if (!signature) {
             res.status(400).json({ error: 'Missing required headers' });
             return;
         }
 
         const isValid = verifyWebhook(
-            JSON.stringify(req.body),
+            req.body.toString(),
             signature,
             process.env.ALCHEMY_WEBHOOK_SIGNING_KEY!
         );
@@ -409,11 +409,24 @@ export const completeToken = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'Invalid signature' });
             return;
         }
-
-        const parsed = FairLaunchCompletedEventSchema.parse(req.body.result[0]);
-
-        const fairLaunchId = BigInt(parsed.event.log.topics[1]).toString();
-
+        const parsed = JSON.parse(req.body.toString());
+        let fairLaunchId = null;
+        for (const log of parsed.event.data.block.logs) {
+            try {
+              const parsed = memedTokenSale_contract.interface.parseLog(log);
+              if (parsed && parsed.name === "FairLaunchReadyToComplete") {
+                fairLaunchId = parsed.args[0].toString();
+                break;
+              }
+            } catch (error) {
+              console.error('Failed to parse log:', error);
+            }
+          }
+        if (!fairLaunchId) {
+            res.status(400).json({ error: 'Fair launch completed event not found' });
+            return;
+        }
+        
         const job = await addTokenDeploymentJob(fairLaunchId);
 
         res.status(200).json({
