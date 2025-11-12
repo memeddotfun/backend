@@ -45,17 +45,19 @@ export const createToken = async (req: FileRequest, res: Response) => {
             return;
         }
 
-        const media = await uploadMedia(image);
+        const media = await uploadMedia(image, { name, description, image: null });
 
-        const fairLaunchId = await createFairLaunch(req.user.address, name, ticker, description, media.cid);
+        const fairLaunchId = await createFairLaunch(req.user.address);
 
         await prisma.token.create({
             data: {
                 fairLaunchId,
-                image: {
+                metadata: {
                     create: {
-                        ipfsCid: media.cid,
-                        s3Key: media.key,
+                        cid: media.cid,
+                        imageKey: media.key,
+                        name,
+                        description,
                     }
                 },
                 user: { connect: { id: req.user.id } }
@@ -123,17 +125,19 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
             return;
         }
 
-        const media = await uploadMedia(image);
+        const media = await uploadMedia(image, { name, description, image: null });
         const zeroAddress = '0x0000000000000000000000000000000000000000';
-        const fairLaunchId = await createFairLaunch(zeroAddress, name, ticker, description, media.cid);
+        const fairLaunchId = await createFairLaunch(zeroAddress);
 
         await prisma.token.create({
             data: {
                 fairLaunchId,
-                image: {
+                metadata: {
                     create: {
-                        ipfsCid: media.cid,
-                        s3Key: media.key,
+                        cid: media.cid,
+                        imageKey: media.key,
+                        name,
+                        description,
                     }
                 },
                 user: { connect: { id: user.id } }
@@ -315,14 +319,14 @@ export const disconnectWallet = async (req: Request, res: Response) => {
 
 export const getUser = async (req: Request, res: Response) => {
     try {
-        const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { socials: true, token: { include: { image: true } } } });
+        const user = await prisma.user.findUnique({ where: { id: req.user.id }, include: { socials: true, token: { include: { metadata: true } } } });
         if (!user) {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        for (const token of user.token) {
-            const presignedUrl = await getPresignedUrl(token.image.s3Key);
-            token.image.s3Key = presignedUrl;
+         for (const token of user.token) {
+            const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
+            token.metadata.imageKey = presignedUrl;
         }
         res.status(200).json({ user });
         return;
@@ -336,13 +340,13 @@ export const getUser = async (req: Request, res: Response) => {
 export const getToken = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const token = await prisma.token.findUnique({ where: { id }, include: { image: true } });
+        const token = await prisma.token.findUnique({ where: { id }, include: { metadata: true } });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
-        const presignedUrl = await getPresignedUrl(token.image.s3Key);
-        token.image.s3Key = presignedUrl;
+        const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
+        token.metadata.imageKey = presignedUrl;
         res.status(200).json({ token });
         return;
     } catch (error) {
@@ -354,10 +358,10 @@ export const getToken = async (req: Request, res: Response) => {
 
 export const getAllTokens = async (req: Request, res: Response) => {
     try {
-        const tokens = await prisma.token.findMany({ include: { image: true } });
+        const tokens = await prisma.token.findMany({ include: { metadata: true } });
         for (const token of tokens) {
-            const presignedUrl = await getPresignedUrl(token.image.s3Key);
-            token.image.s3Key = presignedUrl;
+            const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
+            token.metadata.imageKey = presignedUrl;
         }
         res.status(200).json({ tokens });
         return;

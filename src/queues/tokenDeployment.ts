@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import redis from '../clients/redis';
 import { completeFairLaunch } from '../services/blockchain';
+import prisma from '../clients/prisma';
 
 // Define job data interface
 export interface TokenDeploymentJobData {
@@ -27,7 +28,13 @@ export const tokenDeploymentWorker = new Worker(
   'token-deployment',
   async (job: Job<TokenDeploymentJobData>) => {
     const { fairLaunchId } = job.data;
-    
+    const token = await prisma.token.findUnique({
+      where: { fairLaunchId: fairLaunchId },
+      include: { metadata: true },
+    });
+    if (!token) {
+      throw new Error("Token not found");
+    }
     console.log(`Processing token deployment for fair launch ID: ${fairLaunchId}`);
     
     try {
@@ -35,7 +42,7 @@ export const tokenDeploymentWorker = new Worker(
       await job.updateProgress(10);
       
       // Execute the token deployment
-      const tokenAddress = await completeFairLaunch(fairLaunchId);
+      const tokenAddress = await completeFairLaunch(fairLaunchId, `ipfs://${token.metadata.cid}`);
       
       // Update job progress
       await job.updateProgress(100);
@@ -73,7 +80,7 @@ tokenDeploymentWorker.on('stalled', (jobId: string) => {
 
 // Add a job to the queue
 export const addTokenDeploymentJob = async (fairLaunchId: string) => {
-  try {
+  try { 
     const job = await tokenDeploymentQueue.add(
       'deploy-token',
       { fairLaunchId },

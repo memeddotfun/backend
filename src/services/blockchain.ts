@@ -56,7 +56,7 @@ export const getToken = async (id: string): Promise<Token | null> => {
  * @param id - The id of the fair launch
  * @returns The deployed token address
  */
-export const completeFairLaunch = async (id: string): Promise<string> => {
+export const completeFairLaunch = async (id: string, metadataCid: string): Promise<string> => {
   try {
     
     const token = await getToken(id);
@@ -70,7 +70,7 @@ export const completeFairLaunch = async (id: string): Promise<string> => {
     const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, config.factory, config.memedEngageToEarn, config.memedTokenSale);
     await tokenContract.waitForDeployment();
     const tokenAddress = await tokenContract.getAddress();
-    const warriorNFTContract = await memedWarriorNFT_contract.deploy(tokenAddress, config.memedBattle, config.factory);
+    const warriorNFTContract = await memedWarriorNFT_contract.deploy(tokenAddress, config.memedBattle, config.factory, metadataCid);
     await warriorNFTContract.waitForDeployment();
     const warriorAddress = await warriorNFTContract.getAddress();
     await factory_contract.completeFairLaunch(id, tokenAddress, warriorAddress);
@@ -98,19 +98,11 @@ export const completeFairLaunch = async (id: string): Promise<string> => {
  * @returns The fair launch id
  */
 export const createFairLaunch = async (
-  creator: string,
-  name: string,
-  ticker: string,
-  description: string,
-  image: string
+  creator: string
 ): Promise<string> => {
   try {
     const tx = await factory_contract.startFairLaunch(
       creator,
-      name,
-      ticker,
-      description,
-      image
     );
     const receipt = await tx.wait();
     for (const log of receipt.logs) {

@@ -8,22 +8,31 @@ type Media = {
     key: string;
 };
 
+type Metadata = {
+    name: string;
+    description: string;
+    image: string | null;
+};
+
 /**
  * Uploads a media file to Pinata and S3
  * @param file - The media file to upload
+ * @param metadata - The metadata for the media file
  * @returns The media file's CID and S3 key
  */
-export const uploadMedia = async (file: Express.Multer.File): Promise<Media> => {
+export const uploadMedia = async (file: Express.Multer.File, metadata: Metadata): Promise<Media> => {
     const fileBlob = new File([new Uint8Array(file.buffer)], file.originalname, { type: file.mimetype });
-    const response = await pinata.upload.public.file(fileBlob);
-    const Key = `token-images/${response.cid}.${file.mimetype.split("/")[1]}`;
+    const imageResponse = await pinata.upload.public.file(fileBlob);
+    const Key = `token-images/${imageResponse.cid}.${file.mimetype.split("/")[1]}`;
     await s3Client.send(new PutObjectCommand({
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key,
         Body: file.buffer,
     }));
+    metadata.image = `ipfs://${imageResponse.cid}`;
+    const metadataResponse = await pinata.upload.public.json(metadata);
     return {
-        cid: response.cid,
+        cid: metadataResponse.cid,
         key: Key,
     };
 };
