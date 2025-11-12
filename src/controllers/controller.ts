@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema, connectSocialSchema, createNonceSchema, FairLaunchCompletedEventSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
+import { connectWalletSchema, createTokenSchema, connectSocialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
 import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
