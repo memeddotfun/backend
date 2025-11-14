@@ -1,7 +1,7 @@
 {
-  "factory": "0xd779CD499b11CCF692A0f655a408e370f13640f6",
-  "memedBattle": "0xaBEDE18b8b77C585f21C9009188f2E7d163d6944",
-  "memedBattleResolver": "0xd6c96Af324169c61F7c4D28E20d226faC170ec94",
-  "memedEngageToEarn": "0x9fdd7fd21f430e8dc72bd04944f9534A8A4EF60c",
-  "memedTokenSale": "0x790266D5573d0B6587CCda0Bb32bE50A0F3cfBE0"
+  "factory": "0x55F9635b9264F64FAA66Cdf59DeC391E248Eed5B",
+  "memedBattle": "0xb2Ea3eBbDf752AccD32d8249BCe69b543111c762",
+  "memedBattleResolver": "0x28Fa035538ff9f850F9216F7C381c08Ed2a6CffA",
+  "memedEngageToEarn": "0xeBf6318cD4268F1dd33907Bc1cDa58fD10BA6d36",
+  "memedTokenSale": "0x44Ac7740849C67e9a4cEf8ccDa294F7d199F6777"
 }
