@@ -74,7 +74,7 @@ export const completeFairLaunch = async (id: string, metadataCid: string): Promi
     const tokenContract = await memedToken_contract.deploy(token.name, token.ticker, config.factory, config.memedEngageToEarn, config.memedTokenSale);
     await tokenContract.waitForDeployment();
     const tokenAddress = await tokenContract.getAddress();
-    const warriorNFTContract = await memedWarriorNFT_contract.deploy(tokenAddress, config.memedBattle, config.factory, metadataCid);
+    const warriorNFTContract = await memedWarriorNFT_contract.deploy(`${token.name} Warrior`, token.ticker, tokenAddress, config.memedBattle, config.factory, metadataCid);
     await warriorNFTContract.waitForDeployment();
     const warriorAddress = await warriorNFTContract.getAddress();
     await factory_contract.completeFairLaunch(id, tokenAddress, warriorAddress);
