@@ -359,6 +359,26 @@ export const getToken = async (req: Request, res: Response) => {
     }
 };
 
+export const getTokenByAddress = async (req: Request, res: Response) => {
+    try {
+        const { address } = req.params;
+        const token = await prisma.token.findFirst({ where: { address }, include: { metadata: true } });
+        if (!token) {
+            res.status(404).json({ error: 'Token not found' });
+            return;
+        }
+        const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
+        token.metadata.imageKey = presignedUrl;
+        res.status(200).json({ token });
+        return;
+    }
+    catch (error) {
+        console.error('Failed to get token by address:', error);
+        res.status(500).json({ error: 'Failed to get token by address' });
+        return;
+    }
+};
+
 export const getAllTokens = async (req: Request, res: Response) => {
     try {
         const tokens = await prisma.token.findMany({ include: { metadata: true } });

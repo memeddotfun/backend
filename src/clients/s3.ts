@@ -6,5 +6,4 @@ if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AW
 
 export const s3Client = new S3Client({
     region: process.env.AWS_REGION,
-    endpoint: process.env.R2_ENDPOINT,
 });

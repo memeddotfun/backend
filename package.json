@@ -15,11 +15,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-kms": "^3.933.0",
     "@aws-sdk/client-s3": "^3.888.0",
     "@aws-sdk/s3-request-presigner": "^3.888.0",
     "@google-cloud/bigquery": "^8.1.1",
     "@lens-protocol/client": "^0.0.0-canary-20250430134539",
     "@prisma/client": "^6.8.2",
+    "@rumblefishdev/eth-signer-kms": "^4.0.0",
     "@types/express": "^5.0.2",
     "@types/node-cron": "^3.0.11",
     "axios": "^1.9.0",
