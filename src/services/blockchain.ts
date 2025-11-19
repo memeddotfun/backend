@@ -1,4 +1,4 @@
-import { factory_contract, memedToken_contract, memedWarriorNFT_contract } from "../config/factory";
+import { factory_contract, memedToken_contract, memedTokenSale_contract, memedWarriorNFT_contract } from "../config/factory";
 import prisma from "../clients/prisma";
 import config from "../config/config.json";
 
@@ -47,7 +47,7 @@ export const getToken = async (id: string): Promise<Token | null> => {
           : null,
       heat: parseInt(tokenRewardData.heat.toString()),
       lastEngagementBoost: parseInt(tokenRewardData.lastEngagementBoost.toString()),
-      lastHeatUpdate: new Date(parseInt(tokenRewardData.lastHeatUpdate.toString()) * 1000),
+      lastHeatUpdate: new Date(parseInt(tokenRewardData.lastHeatUpdate.toString()) * 1000)
     };
   } catch (e) {
     console.error("Get token error:", e);
@@ -103,7 +103,7 @@ export const completeFairLaunch = async (id: string, metadataCid: string): Promi
  */
 export const createFairLaunch = async (
   creator: string
-): Promise<string> => {
+): Promise<{ fairLaunchId: string, endTime: Date }> => {
   try {
     const tx = await factory_contract.startFairLaunch(
       creator,
@@ -113,7 +113,7 @@ export const createFairLaunch = async (
       try {
         const parsed = factory_contract.interface.parseLog(log);
         if (parsed && parsed.name === "TokenCreated") {
-          return parsed.args[0].toString();
+          return { fairLaunchId: parsed.args[0].toString(), endTime: new Date(parseInt(parsed.args[3].toString()) * 1000) };
         }
       } catch {
         // Not this contract's event
@@ -152,6 +152,21 @@ export const updateHeat = async (heatUpdates: HeatUpdate[]): Promise<void> => {
     await tx.wait();
   } catch (e) {
     console.error("Update heat error:", e);
+    throw e;
+  }
+};
+
+/**
+ * Check if a fair launch is completable
+ * @param id - The id of the fair launch
+ * @returns True if the fair launch is completable, false otherwise
+ */
+export const isCompletable = async (id: string): Promise<boolean> => {
+  try {
+    const isCompletable = await memedTokenSale_contract.isCompletable(BigInt(id));
+    return isCompletable;
+  } catch (e) {
+    console.error("Check if fair launch is completable error:", e);
     throw e;
   }
 };

@@ -9,9 +9,7 @@ import { getEngagementMetrics, getFollowerStats, getLensAccountId, getLensUserna
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
-import { addTokenDeploymentJob, tokenDeploymentQueue } from '../queues/tokenDeployment';
-import { verifyWebhook } from '../functions/webhookVerify';
-import { memedTokenSale_contract } from '../config/factory';
+import { tokenDeploymentQueue } from '../queues/tokenDeployment';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
@@ -48,11 +46,12 @@ export const createToken = async (req: FileRequest, res: Response) => {
 
         const media = await uploadMedia(image, { name, description, image: null });
 
-        const fairLaunchId = await createFairLaunch(req.user.address);
+        const { fairLaunchId, endTime } = await createFairLaunch(req.user.address);
 
         await prisma.token.create({
             data: {
                 fairLaunchId,
+                endTime,
                 metadata: {
                     create: {
                         cid: media.cid,
@@ -129,11 +128,12 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
 
         const media = await uploadMedia(image, { name, description, image: null });
         const zeroAddress = '0x0000000000000000000000000000000000000000';
-        const fairLaunchId = await createFairLaunch(zeroAddress);
+        const { fairLaunchId, endTime } = await createFairLaunch(zeroAddress);
 
         await prisma.token.create({
             data: {
                 fairLaunchId,
+                endTime,
                 metadata: {
                     create: {
                         cid: media.cid,
@@ -409,68 +409,6 @@ export const getLensEngagement = async (req: Request, res: Response) => {
         return;
     }
 };
-
-
-
-export const completeToken = async (req: Request, res: Response) => {
-    try {
-        const signature = req.headers['x-alchemy-signature'] as string;
-        if (!signature) {
-            res.status(400).json({ error: 'Missing required headers' });
-            return;
-        }
-
-        const isValid = verifyWebhook(
-            req.body.toString(),
-            signature,
-            process.env.ALCHEMY_WEBHOOK_SIGNING_KEY!
-        );
-        if (!isValid) {
-            res.status(400).json({ error: 'Invalid signature' });
-            return;
-        }
-        const parsed = JSON.parse(req.body.toString());
-        let fairLaunchId = null;
-        for (const log of parsed.event.data.block.logs) {
-            try {
-              const parsed = memedTokenSale_contract.interface.parseLog(log);
-              if (parsed && parsed.name === "FairLaunchReadyToComplete") {
-                fairLaunchId = parsed.args[0].toString();
-                break;
-              }
-            } catch (error) {
-              console.error('Failed to parse log:', error);
-            }
-          }
-        if (!fairLaunchId) {
-            res.status(400).json({ error: 'Fair launch completed event not found' });
-            return;
-        }
-        
-        const job = await addTokenDeploymentJob(fairLaunchId);
-
-        res.status(200).json({
-            message: 'Fair launch completed webhook processed successfully',
-            jobId: job.id,
-            fairLaunchId: fairLaunchId
-        });
-        return;
-    } catch (error) {
-        console.error('Failed to process fair launch completed webhook:', error);
-
-        if (error instanceof z.ZodError) {
-            res.status(400).json({
-                error: 'Invalid webhook data',
-                details: error.errors
-            });
-            return;
-        }
-
-        res.status(500).json({ error: 'Failed to process fair launch completed webhook' });
-        return;
-    }
-};
-
 export const getJobStatus = async (req: Request, res: Response) => {
     try {
         const { jobId } = req.params;
