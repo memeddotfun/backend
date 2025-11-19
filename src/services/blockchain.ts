@@ -113,7 +113,7 @@ export const createFairLaunch = async (
       try {
         const parsed = factory_contract.interface.parseLog(log);
         if (parsed && parsed.name === "TokenCreated") {
-          return { fairLaunchId: parsed.args[0].toString(), endTime: new Date(parseInt(parsed.args[3].toString()) * 1000) };
+          return { fairLaunchId: parsed.args[0].toString(), endTime: new Date(parseInt(parsed.args[4].toString()) * 1000) };
         }
       } catch {
         // Not this contract's event
