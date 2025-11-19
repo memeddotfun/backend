@@ -6,18 +6,14 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { startHeatUpdateCron } from './cron/heatUpdate';
 import { startBattleResolveCron } from './cron/battleResolve';
+import { startSaleCompletionCron } from './cron/saleCompletion';
 import './queues/tokenDeployment';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use((req, res, next) => {
-  if (req.path === '/api/complete-token') {
-    return next();
-  }
-  express.json()(req, res, next);
-});
+app.use(express.json());
 app.use(cookieParser());
 app.use(cors({origin: [process.env.FRONTEND_URL!, 'http://localhost:5173'], credentials: true}));
 app.use(morgan('dev'));
@@ -32,6 +28,7 @@ app.listen(PORT, () => {
   // Start cron jobs
   startHeatUpdateCron();
   startBattleResolveCron();
+  startSaleCompletionCron();
 });
 
 // Handle unhandled promise rejections
