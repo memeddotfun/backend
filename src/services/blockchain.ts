@@ -159,12 +159,13 @@ export const updateHeat = async (heatUpdates: HeatUpdate[]): Promise<void> => {
 /**
  * Check if a fair launch is completable
  * @param id - The id of the fair launch
- * @returns True if the fair launch is completable, false otherwise
+ * @returns { isCompletable: boolean, isRefundable: boolean }
  */
-export const isCompletable = async (id: string): Promise<boolean> => {
+export const isCompletableAndRefundable = async (id: string): Promise<{ isCompletable: boolean, isRefundable: boolean }> => {
   try {
     const isCompletable = await memedTokenSale_contract.isCompletable(BigInt(id));
-    return isCompletable;
+    const isRefundable = await memedTokenSale_contract.isRefundable(BigInt(id));
+    return { isCompletable, isRefundable };
   } catch (e) {
     console.error("Check if fair launch is completable error:", e);
     throw e;

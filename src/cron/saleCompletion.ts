@@ -1,7 +1,7 @@
 import * as cron from 'node-cron';
 import prisma from '../clients/prisma';
 import { addTokenDeploymentJob } from '../queues/tokenDeployment';
-import { isCompletable } from '../services/blockchain';
+import { isCompletableAndRefundable } from '../services/blockchain';
 
 /**
  * Sale completion cron job
@@ -16,6 +16,7 @@ export const startSaleCompletionCron = () => {
       const pendingTokens = await prisma.token.findMany({
         where: {
           address: null,
+          failed: false,
           endTime: {
             lte: now
           }
@@ -24,10 +25,15 @@ export const startSaleCompletionCron = () => {
 
       for (const token of pendingTokens) {
         try {
-          const isCompletableResult = await isCompletable(token.fairLaunchId);
+          const isCompletableResult = await isCompletableAndRefundable(token.fairLaunchId);
 
-          if (isCompletableResult) {
+          if (isCompletableResult.isCompletable) {
             await addTokenDeploymentJob(token.fairLaunchId);
+          } else if (isCompletableResult.isRefundable) {
+            await prisma.token.update({
+              where: { fairLaunchId: token.fairLaunchId },
+              data: { failed: true },
+            });
           }
 
         } catch (error) {
