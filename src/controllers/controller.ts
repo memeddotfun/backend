@@ -83,7 +83,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
 
 export const createUnclaimedTokens = async (req: Request, res: Response) => {
     try {
-        const { name, ticker, description, address } = createUnclaimedTokensSchema.parse(req.body);
+        const { name, ticker, description, type, username } = createUnclaimedTokensSchema.parse(req.body);
         const image = req.file;
 
         if (req.user.role !== 'ADMIN') {
@@ -96,35 +96,31 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
             return;
         }
 
-        const lensUsername = await getLensUsername(address);
-        if (!lensUsername) {
+        const owner = await getHandleOwner(username);
+        const accountId = await getLensAccountId(req.user.address, username);
+        if (!owner || !accountId) {
             res.status(400).json({ error: 'Lens username not found' });
             return;
         }
 
-        let user = await prisma.social.findFirst({ where: { type: 'LENS', username: lensUsername } });
-        if (!user) {
-            const accountId = await getLensAccountId(address, lensUsername);
-            if (!accountId) {
-                res.status(400).json({ error: 'Lens account not found' });
-                return;
-            }
-            user = await prisma.social.create({
-                data: { type: 'LENS', username: lensUsername, accountId, user: { connect: { address } } }
-            });
-        }
-
-        const followers = await getFollowerStats(lensUsername);
+        const followers = await getFollowerStats(username);
         if (followers && followers.followers < MIN_FOLLOWERS_FOR_TOKEN) {
             res.status(400).json({ error: 'User must have at least 8000 followers' });
             return;
         }
 
-        const token = await prisma.token.findFirst({ where: { user: { address }, address: { not: null } } });
+        const token = await prisma.token.findFirst({ where: { user: { socials: { some: { type, accountId } } } } });
         if (token) {
             res.status(400).json({ error: 'Token already exists' });
             return;
         }
+
+        await prisma.social.deleteMany({ where: { type, accountId } });
+        const user = await prisma.user.upsert({
+            where: { address: owner },
+            update: { socials: { create: { type, username, accountId } } },
+            create: { address: owner, socials: { create: { type, username, accountId } } }
+        });
 
         const media = await uploadMedia(image, { name, description, image: null });
         const zeroAddress = '0x0000000000000000000000000000000000000000';
@@ -287,6 +283,13 @@ export const connectSocial = async (req: Request, res: Response) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
+
+        const owner = await getHandleOwner(username);
+        if (owner?.toLowerCase() !== user.address.toLowerCase()) {
+            res.status(400).json({ error: 'User must be the owner of the social account' });
+            return;
+        }
+
         let accountId = null;
         if (type === 'LENS') {
             accountId = await getLensAccountId(user.address, username);
@@ -296,19 +299,48 @@ export const connectSocial = async (req: Request, res: Response) => {
             return;
         }
 
-        const existingSocial = await prisma.social.findFirst({
+        const existingSocial = await prisma.social.count({
             where: {
-                OR: [
-                    { accountId, type },
-                    { type, userId: req.user.id }
-                ]
+                type,
+                userId: req.user.id
             }
         });
-        if (existingSocial) {
+        if (existingSocial > 0) {
             res.status(400).json({ error: 'Social already connected' });
             return;
         }
-        await prisma.social.create({ data: { type, username, accountId, user: { connect: { id: user.id } } } });
+
+        const existingToken = await prisma.token.findFirst({
+            where: {
+                user: {
+                    socials: {
+                        some: {
+                            type,
+                            accountId
+                        }
+                    }
+                }
+            }
+        });
+        if (existingToken) {
+            res.status(400).json({ error: 'Token already connected' });
+            return;
+        }
+
+        await prisma.social.upsert({
+            where: {
+                accountId
+            },
+            update: {
+                userId: user.id
+            },
+            create: {
+                type,
+                username,
+                accountId,
+                user: { connect: { id: user.id } }
+            }
+        });
         res.status(200).json({ message: 'Social connected successfully' });
         return;
     } catch (error) {
@@ -406,12 +438,38 @@ export const getTokenByAddress = async (req: Request, res: Response) => {
 
 export const getAllTokens = async (req: Request, res: Response) => {
     try {
-        const tokens = await prisma.token.findMany({ include: { metadata: true } });
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const skip = (page - 1) * limit;
+
+        const [tokens, totalCount] = await Promise.all([
+            prisma.token.findMany({ 
+                include: { metadata: true },
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' }
+            }),
+            prisma.token.count()
+        ]);
+
         for (const token of tokens) {
             const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
             token.metadata.imageKey = presignedUrl;
         }
-        res.status(200).json({ tokens });
+
+        const totalPages = Math.ceil(totalCount / limit);
+
+        res.status(200).json({ 
+            tokens,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalCount,
+                limit,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1
+            }
+        });
         return;
     } catch (error) {
         console.error('Failed to get all tokens:', error);
