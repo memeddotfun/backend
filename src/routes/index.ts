@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getJobStatus, getQueueStats, getTokenByAddress } from '../controllers/controller';
+import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getJobStatus, getQueueStats, getTokenByAddress, getTokenBySocial } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
 import { sessionMiddleware } from '../middleware/session';
 
@@ -23,6 +23,7 @@ router.get('/user', sessionMiddleware, getUser);
 router.post('/connect-social', sessionMiddleware, connectSocial);
 router.get('/token/:id', getToken);
 router.get('/token-by-address/:address', getTokenByAddress);
+router.get('/token-by-social', getTokenBySocial);
 router.get('/tokens', getAllTokens);
 router.get('/lens-engagement/:handle', getLensEngagement);
 router.get('/job-status/:jobId', getJobStatus);

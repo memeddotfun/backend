@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema, connectSocialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
+import { connectWalletSchema, createTokenSchema, socialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
 import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
@@ -278,7 +278,7 @@ export const connectWallet = async (req: Request, res: Response) => {
 
 export const connectSocial = async (req: Request, res: Response) => {
     try {
-        const { type, username } = connectSocialSchema.parse(req.body);
+        const { type, username } = socialSchema.parse(req.body);
         const user = await prisma.user.findUnique({ where: { id: req.user.id } });
         if (!user) {
             res.status(404).json({ error: 'User not found' });
@@ -433,6 +433,32 @@ export const getTokenByAddress = async (req: Request, res: Response) => {
     catch (error) {
         console.error('Failed to get token by address:', error);
         res.status(500).json({ error: 'Failed to get token by address' });
+        return;
+    }
+};
+
+export const getTokenBySocial = async (req: Request, res: Response) => {
+    try {
+        const { type, username } = socialSchema.parse(req.query);
+        const token = await prisma.token.findFirst({ where: { user: { socials: { some: { type, username } } } }, include: { metadata: true } });
+        if (!token) {
+            res.status(404).json({ error: 'Token not found' });
+            return;
+        }
+        const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
+        token.metadata.imageKey = presignedUrl;
+        res.status(200).json({ token });
+        return;
+    }
+    catch (error) {
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
+        res.status(500).json({ error: 'Failed to get token by social' });
         return;
     }
 };
