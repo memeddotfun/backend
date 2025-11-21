@@ -62,6 +62,7 @@ model Token {
   metadata Metadata @relation(fields: [metadataId], references: [id])
   metadataId String
   endTime DateTime
+  claimed Boolean @default(false)
   failed Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

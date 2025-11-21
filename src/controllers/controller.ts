@@ -59,6 +59,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
                         name,
                         ticker,
                         description,
+                        claimed: true
                     }
                 },
                 user: { connect: { id: req.user.id } }
@@ -440,6 +441,7 @@ export const getAllTokens = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 20;
+        const claimed = req.query.claimed as string === 'true';
         const skip = (page - 1) * limit;
 
         const [tokens, totalCount] = await Promise.all([
@@ -447,7 +449,8 @@ export const getAllTokens = async (req: Request, res: Response) => {
                 include: { metadata: true },
                 skip,
                 take: limit,
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                where: { claimed }
             }),
             prisma.token.count()
         ]);
