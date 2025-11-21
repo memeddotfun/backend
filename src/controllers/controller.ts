@@ -393,7 +393,7 @@ export const getUser = async (req: Request, res: Response) => {
 export const getToken = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const token = await prisma.token.findUnique({ where: { id }, include: { metadata: true } });
+        const token = await prisma.token.findUnique({ where: { id }, include: { metadata: true, user: { include: { socials: true } } } });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
             return;
@@ -419,7 +419,7 @@ export const getTokenByAddress = async (req: Request, res: Response) => {
                     mode: 'insensitive'
                 }
             }, 
-            include: { metadata: true } 
+            include: { metadata: true, user: { include: { socials: true } } } 
         });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
@@ -472,7 +472,7 @@ export const getAllTokens = async (req: Request, res: Response) => {
 
         const [tokens, totalCount] = await Promise.all([
             prisma.token.findMany({ 
-                include: { metadata: true },
+                include: { metadata: true, user: { include: { socials: true } } },
                 skip,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
