@@ -167,18 +167,13 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
 export const claimUnclaimedToken = async (req: Request, res: Response) => {
     try {
         const { id } = claimUnclaimedTokensSchema.parse(req.body);
-        const token = await prisma.token.findUnique({ where: { id }, include: { user: { include: { socials: true } } } });
+        const token = await prisma.token.findFirst({ where: { id, address: { not: null } }, include: { user: { include: { socials: true } } } });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
         if (token.claimed) {
             res.status(400).json({ error: 'Token already claimed' });
-            return;
-        }
-
-        if(token.failed) {
-            res.status(400).json({ error: 'Token failed to deploy' });
             return;
         }
 
