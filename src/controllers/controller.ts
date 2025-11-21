@@ -52,6 +52,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
             data: {
                 fairLaunchId,
                 endTime,
+                claimed: true,
                 metadata: {
                     create: {
                         cid: media.cid,
@@ -59,7 +60,6 @@ export const createToken = async (req: FileRequest, res: Response) => {
                         name,
                         ticker,
                         description,
-                        claimed: true
                     }
                 },
                 user: { connect: { id: req.user.id } }
