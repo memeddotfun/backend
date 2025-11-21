@@ -5,7 +5,7 @@ import { connectWalletSchema, createTokenSchema, connectSocialSchema, createNonc
 import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
-import { getEngagementMetrics, getFollowerStats, getLensAccountId, getLensUsername } from '../services/lens';
+import { getEngagementMetrics, getFollowerStats, getHandleOwner, getLensAccountId, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
@@ -164,18 +164,35 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
 export const claimUnclaimedToken = async (req: Request, res: Response) => {
     try {
         const { id } = claimUnclaimedTokensSchema.parse(req.body);
-        const token = await prisma.token.findUnique({ where: { id }, include: { user: true } });
+        const token = await prisma.token.findUnique({ where: { id }, include: { user: { include: { socials: true } } } });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
 
-        if (token.user.address !== req.user.address) {
+        const lensUsername = token.user.socials.find((social: Social) => social.type === 'LENS')?.username;
+        if (!lensUsername) {
+            res.status(400).json({ error: 'User must have a LENS account' });
+            return;
+        }
+        const owner = await getHandleOwner(lensUsername);   
+        if (owner?.toLowerCase() !== req.user.address.toLowerCase()) {
             res.status(400).json({ error: 'User must be the creator of the token' });
             return;
         }
 
-        await claimUnclaimedTokens(id, token.user.address);
+        let claimAddress = token.user.address;
+        if(token.userId !== req.user.id) {
+            await prisma.token.update({
+                where: { id },
+                data: { 
+                    userId: req.user.id,
+                    user: { connect: { id: req.user.id } }
+                }
+            });
+            claimAddress = req.user.address;
+        }
+        await claimUnclaimedTokens(id, claimAddress);
         res.status(200).json({ message: 'Unclaimed tokens claimed successfully' });
         return;
     } catch (error) {
@@ -362,7 +379,15 @@ export const getToken = async (req: Request, res: Response) => {
 export const getTokenByAddress = async (req: Request, res: Response) => {
     try {
         const { address } = req.params;
-        const token = await prisma.token.findFirst({ where: { address }, include: { metadata: true } });
+        const token = await prisma.token.findFirst({ 
+            where: { 
+                address: {
+                    equals: address,
+                    mode: 'insensitive'
+                }
+            }, 
+            include: { metadata: true } 
+        });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
             return;
