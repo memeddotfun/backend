@@ -171,3 +171,13 @@ export const isCompletableAndRefundable = async (id: string): Promise<{ isComple
     throw e;
   }
 };
+
+export const isCreatorBlocked = async (creator: string): Promise<{ isBlocked: boolean, blockTime: Date }> => {
+  try {
+    const [isBlocked, blockTime] = await memedTokenSale_contract.isCreatorBlocked(creator);
+    return { isBlocked: isBlocked, blockTime: new Date(parseInt(blockTime.toString()) * 1000) };
+  } catch (e) {
+    console.error("Check if creator is blocked error:", e);
+    throw e;
+  }
+};

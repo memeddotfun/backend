@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
 import { connectWalletSchema, createTokenSchema, socialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
-import { createFairLaunch, claimUnclaimedTokens } from '../services/blockchain';
+import { createFairLaunch, claimUnclaimedTokens, isCreatorBlocked } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
 import { getEngagementMetrics, getFollowerStats, getHandleOwner, getLensAccountId, getLensUsername } from '../services/lens';
@@ -41,6 +41,12 @@ export const createToken = async (req: FileRequest, res: Response) => {
         const token = await prisma.token.findFirst({ where: { user: { address: req.user.address }, address: { not: null } } });
         if (token) {
             res.status(400).json({ error: 'Token already exists' });
+            return;
+        }
+
+        const { isBlocked, blockTime } = await isCreatorBlocked(req.user.address);
+        if (isBlocked) {
+            res.status(400).json({ error: 'Creator is blocked', blockTime: blockTime });
             return;
         }
 
@@ -166,6 +172,15 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
+        if (token.claimed) {
+            res.status(400).json({ error: 'Token already claimed' });
+            return;
+        }
+
+        if(token.failed) {
+            res.status(400).json({ error: 'Token failed to deploy' });
+            return;
+        }
 
         const lensUsername = token.user.socials.find((social: Social) => social.type === 'LENS')?.username;
         if (!lensUsername) {
@@ -175,6 +190,12 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
         const owner = await getHandleOwner(lensUsername);   
         if (owner?.toLowerCase() !== req.user.address.toLowerCase()) {
             res.status(400).json({ error: 'User must be the creator of the token' });
+            return;
+        }
+
+        const { isBlocked, blockTime } = await isCreatorBlocked(owner);
+        if (isBlocked) {
+            res.status(400).json({ error: 'Creator is blocked', blockTime: blockTime });
             return;
         }
 
