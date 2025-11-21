@@ -98,7 +98,7 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
         }
 
         const owner = await getHandleOwner(username);
-        const accountId = await getLensAccountId(req.user.address, username);
+        const accountId = await getLensAccountId(owner, username);
         if (!owner || !accountId) {
             res.status(400).json({ error: 'Lens username not found' });
             return;
