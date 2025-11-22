@@ -76,6 +76,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
         return;
 
     } catch (error) {
+        console.error('Failed to create token:', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({
                 error: 'Validation failed',
@@ -152,6 +153,7 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
         res.status(200).json({ message: 'Unclaimed tokens created successfully', fairLaunchId });
         return;
     } catch (error) {
+        console.error('Failed to create unclaimed tokens:', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({
                 error: 'Validation failed',
@@ -280,6 +282,7 @@ export const connectWallet = async (req: Request, res: Response) => {
         });
         return;
     } catch (error) {
+        console.error('Failed to connect wallet:', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({
                 error: 'Validation failed',
@@ -361,6 +364,7 @@ export const connectSocial = async (req: Request, res: Response) => {
         res.status(200).json({ message: 'Social connected successfully' });
         return;
     } catch (error) {
+        console.error('Failed to connect social:', error);
         res.status(500).json({ error: 'Failed to connect social' });
         return;
     }
@@ -381,6 +385,7 @@ export const disconnectWallet = async (req: Request, res: Response) => {
         return;
     }
     catch (error) {
+        console.error('Failed to disconnect wallet:', error);
         res.status(500).json({ error: 'Failed to disconnect wallet' });
         return;
     }
@@ -401,6 +406,7 @@ export const getUser = async (req: Request, res: Response) => {
         return;
     }
     catch (error) {
+        console.error('Failed to get user:', error);
         res.status(500).json({ error: 'Failed to get user' });
         return;
     }
@@ -420,6 +426,13 @@ export const getToken = async (req: Request, res: Response) => {
         return;
     } catch (error) {
         console.error('Failed to get token:', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
         res.status(500).json({ error: 'Failed to get token' });
         return;
     }
@@ -448,6 +461,13 @@ export const getTokenByAddress = async (req: Request, res: Response) => {
     }
     catch (error) {
         console.error('Failed to get token by address:', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
         res.status(500).json({ error: 'Failed to get token by address' });
         return;
     }
@@ -467,6 +487,7 @@ export const getTokenBySocial = async (req: Request, res: Response) => {
         return;
     }
     catch (error) {
+        console.error('Failed to get token by social:', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({
                 error: 'Validation failed',
@@ -518,6 +539,13 @@ export const getAllTokens = async (req: Request, res: Response) => {
         return;
     } catch (error) {
         console.error('Failed to get all tokens:', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
         res.status(500).json({ error: 'Failed to get all tokens' });
         return;
     }
@@ -533,6 +561,13 @@ export const getLensEngagement = async (req: Request, res: Response) => {
     }
     catch (error) {
         console.error('Failed to get lens engagement:', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
         res.status(500).json({ error: 'Failed to get lens engagement' });
         return;
     }
@@ -570,6 +605,13 @@ export const getJobStatus = async (req: Request, res: Response) => {
         return;
     } catch (error) {
         console.error('Failed to get job status:', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
         res.status(500).json({ error: 'Failed to get job status' });
         return;
     }
@@ -597,6 +639,13 @@ export const getQueueStats = async (req: Request, res: Response) => {
         return;
     } catch (error) {
         console.error('Failed to get queue stats:', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({
+                error: 'Validation failed',
+                details: error.errors
+            });
+            return;
+        }
         res.status(500).json({ error: 'Failed to get queue stats' });
         return;
     }
