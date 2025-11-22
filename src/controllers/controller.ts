@@ -220,12 +220,11 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
 export const createNonce = async (req: Request, res: Response) => {
     try {
         const { address } = createNonceSchema.parse(req.body);
-        let user = await prisma.user.findUnique({ where: { address } });
-        if (!user) {
-            user = await prisma.user.create({
-                data: { address }
-            });
-        }
+        const user = await prisma.user.upsert({
+            where: { address },
+            update: {},
+            create: { address }
+        });
         const nonce = randomBytes(32).toString('hex');
         await prisma.nonce.create({
             data: {
@@ -504,8 +503,11 @@ export const getAllTokens = async (req: Request, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1;
         const limit = parseInt(req.query.limit as string) || 20;
-        const claimed = req.query.claimed as string === 'true';
         const skip = (page - 1) * limit;
+
+        const whereClause = req.query.claimed !== undefined 
+            ? { claimed: req.query.claimed === 'true' }
+            : {};
 
         const [tokens, totalCount] = await Promise.all([
             prisma.token.findMany({ 
@@ -513,9 +515,9 @@ export const getAllTokens = async (req: Request, res: Response) => {
                 skip,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
-                where: { claimed }
+                where: whereClause
             }),
-            prisma.token.count()
+            prisma.token.count({ where: whereClause })
         ]);
 
         for (const token of tokens) {
