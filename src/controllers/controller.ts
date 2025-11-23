@@ -505,9 +505,25 @@ export const getAllTokens = async (req: Request, res: Response) => {
         const limit = parseInt(req.query.limit as string) || 20;
         const skip = (page - 1) * limit;
 
-        const whereClause = req.query.claimed !== undefined 
-            ? { claimed: req.query.claimed === 'true' }
-            : {};
+        const whereClause: any = {};
+
+        if (req.query.claimed !== undefined) {
+            whereClause.claimed = req.query.claimed === 'true';
+        }
+
+        if (req.query.failed !== undefined) {
+            whereClause.failed = req.query.failed === 'true';
+        }
+
+        if (req.query.search) {
+            const search = req.query.search as string;
+            whereClause.metadata = {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { ticker: { contains: search, mode: 'insensitive' } }
+                ]
+            };
+        }
 
         const [tokens, totalCount] = await Promise.all([
             prisma.token.findMany({ 
