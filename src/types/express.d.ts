@@ -1,9 +1,9 @@
-import { User } from '../generated/client';
+import { User, Social } from '../generated/prisma';
 
 declare global {
   namespace Express {
     interface Request {
-      user: User;
+      user: User & { socials: Social[] };
       }
   }
 }

@@ -201,8 +201,7 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
             await prisma.token.update({
                 where: { id },
                 data: { 
-                    userId: req.user.id,
-                    user: { connect: { id: req.user.id } }
+                    userId: req.user.id
                 }
             });
             claimAddress = req.user.address;

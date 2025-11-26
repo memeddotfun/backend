@@ -29,6 +29,16 @@ enum SocialType {
   YOUTUBE
 }
 
+model SocialAccessToken {
+  id String @id @default(uuid())
+  social Social @relation(fields: [socialId], references: [id])
+  socialId String
+  accessToken String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt  
+}
+
 model Social {
   id String @id @default(uuid())
   userId String
@@ -36,6 +46,7 @@ model Social {
   type SocialType
   username String
   accountId String @unique
+  socialAccessToken SocialAccessToken[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
