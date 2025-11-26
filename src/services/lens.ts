@@ -189,7 +189,7 @@ const MIN_HEAT_UPDATE = 10;
  * Update all tokens heat
  */
 async function updateAllTokensHeat() {
-  const heatUpdates: { address: string, heat: bigint }[] = [];
+  const heatUpdates: { token: string, heat: bigint }[] = [];
   const tokens = await prisma.token.findMany({ where: { address: { not: null } }, include: { user: { include: { socials: true } } } });
   for (const token of tokens) {
     const tokenData = await getToken(token.fairLaunchId);
@@ -204,7 +204,7 @@ async function updateAllTokensHeat() {
     if (!heat || ((heat - tokenData.lastEngagementBoost) < MIN_HEAT_UPDATE && new Date() < tokenData.lastHeatUpdate)) {
       continue;
     }
-    heatUpdates.push({ address: token.address, heat: BigInt(heat) });
+    heatUpdates.push({ token: token.address, heat: BigInt(heat) });
   }
   if (heatUpdates.length === 0) {
     return;

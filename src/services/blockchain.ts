@@ -15,7 +15,7 @@ type Token = {
 };
 
 type HeatUpdate = {
-  address: string;
+  token: string;
   heat: bigint;
 };
 
