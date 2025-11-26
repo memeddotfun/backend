@@ -157,6 +157,21 @@ export const updateHeat = async (heatUpdates: HeatUpdate[]): Promise<void> => {
 };
 
 /**
+ * Get the heat of a token
+ * @param id - The id of the fair launch
+ * @returns The heat of the token
+ */
+export const getBlockchainHeat = async (id: string): Promise<bigint> => {
+  try {
+    const heat = await factory_contract.getHeat(id);
+    return heat;
+  } catch (e) {
+    console.error("Get heat error:", e);
+    throw e;
+  }
+};
+
+/**
  * Check if a fair launch is completable
  * @param id - The id of the fair launch
  * @returns { isCompletable: boolean, isRefundable: boolean }

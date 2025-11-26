@@ -3,7 +3,7 @@ import { evmAddress, mainnet } from '@lens-protocol/client';
 import client from '../config/lens';
 import { BigQuery } from '@google-cloud/bigquery';
 import prisma from '../clients/prisma';
-import { getToken, updateHeat } from "./blockchain";
+import { getBlockchainHeat, getToken, updateHeat } from "./blockchain";
 
 const bigquery = new BigQuery({
   keyFilename: './gcloud.json',
@@ -210,6 +210,19 @@ async function updateAllTokensHeat() {
     return;
   }
   await updateHeat(heatUpdates);
+  for (const heatUpdate of heatUpdates) {
+    const token = await prisma.token.findUnique({
+      where: { address: heatUpdate.token },
+    });
+    if (!token) {
+      continue;
+    }
+    const heat = await getBlockchainHeat(token.fairLaunchId);
+    await prisma.token.update({
+      where: { id: token.id },
+      data: { heat: BigInt(heat) },
+    });
+  }
 }
 
 export {

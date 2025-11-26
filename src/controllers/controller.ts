@@ -668,3 +668,46 @@ export const getQueueStats = async (req: Request, res: Response) => {
         return;
     }
 };
+
+export const getLeaderboard = async (req: Request, res: Response) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const skip = (page - 1) * limit;
+
+        const [tokens, totalCount] = await Promise.all([
+            prisma.token.findMany({
+                where: { address: { not: null } },
+                include: { metadata: true, user: { include: { socials: true } } },
+                orderBy: { heat: 'desc' },
+                skip,
+                take: limit
+            }),
+            prisma.token.count({ where: { address: { not: null } } })
+        ]);
+
+        for (const token of tokens) {
+            const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
+            token.metadata.imageKey = presignedUrl;
+        }
+
+        const totalPages = Math.ceil(totalCount / limit);
+
+        res.status(200).json({
+            tokens,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalCount,
+                limit,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1
+            }
+        });
+        return;
+    } catch (error) {
+        console.error('Failed to get leaderboard:', error);
+        res.status(500).json({ error: 'Failed to get leaderboard' });
+        return;
+    }
+};
