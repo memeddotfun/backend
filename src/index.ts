@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import { startHeatUpdateCron } from './cron/heatUpdate';
 import { startBattleResolveCron } from './cron/battleResolve';
 import { startSaleCompletionCron } from './cron/saleCompletion';
+import { startInstagramTokenRenewalCron } from './cron/instagramTokenRenewal';
 import './queues/tokenDeployment';
 
 const app = express();
@@ -29,6 +30,7 @@ app.listen(PORT, () => {
   startHeatUpdateCron();
   startBattleResolveCron();
   startSaleCompletionCron();
+  startInstagramTokenRenewalCron();
 });
 
 // Handle unhandled promise rejections

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getJobStatus, getQueueStats, getTokenByAddress, getTokenBySocial, getLeaderboard } from '../controllers/controller';
+import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getJobStatus, getQueueStats, getTokenByAddress, getTokenBySocial, getLeaderboard, getInstagramAuthUrl, connectInstagramAuth } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
 import { sessionMiddleware } from '../middleware/session';
 
@@ -21,12 +21,14 @@ router.post('/connect-wallet', connectWallet);
 router.post('/disconnect-wallet', disconnectWallet);
 router.get('/user', sessionMiddleware, getUser);
 router.post('/connect-social', sessionMiddleware, connectSocial);
+router.post('/connect-instagram-auth', connectInstagramAuth);
 router.get('/token/:id', getToken);
 router.get('/token-by-address/:address', getTokenByAddress);
 router.get('/token-by-social', getTokenBySocial);
 router.get('/tokens', getAllTokens);
 router.get('/leaderboard', getLeaderboard);
 router.get('/lens-engagement/:handle', getLensEngagement);
+router.get('/get-instagram-auth-url', getInstagramAuthUrl);
 router.get('/job-status/:jobId', getJobStatus);
 router.get('/queue-stats', getQueueStats);
 

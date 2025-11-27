@@ -1,9 +1,7 @@
-import { fetchAccount, fetchAccountGraphStats, fetchPosts, fetchFollowers } from "@lens-protocol/client/actions";
-import { evmAddress, mainnet } from '@lens-protocol/client';
+import { fetchAccount, fetchAccountGraphStats, fetchFollowers } from "@lens-protocol/client/actions";
+import { evmAddress } from '@lens-protocol/client';
 import client from '../config/lens';
 import { BigQuery } from '@google-cloud/bigquery';
-import prisma from '../clients/prisma';
-import { getBlockchainHeat, getToken, updateHeat } from "./blockchain";
 
 const bigquery = new BigQuery({
   keyFilename: './gcloud.json',
@@ -184,47 +182,6 @@ async function getEngagementMetrics(handle: string, from: Date): Promise<Engagem
   }
 }
 
-const MIN_HEAT_UPDATE = 10;
-/**
- * Update all tokens heat
- */
-async function updateAllTokensHeat() {
-  const heatUpdates: { token: string, heat: bigint }[] = [];
-  const tokens = await prisma.token.findMany({ where: { address: { not: null } }, include: { user: { include: { socials: true } } } });
-  for (const token of tokens) {
-    const tokenData = await getToken(token.fairLaunchId);
-    if (!tokenData || !token.address) {
-      continue;
-    }
-    const lensUsername = token.user.socials.find(social => social.type === 'LENS')?.username;
-    if (!lensUsername) {
-      continue;
-    }
-    const heat = await getHeat(lensUsername, tokenData.lastHeatUpdate);
-    if (!heat || ((heat - tokenData.lastEngagementBoost) < MIN_HEAT_UPDATE && new Date() < tokenData.lastHeatUpdate)) {
-      continue;
-    }
-    heatUpdates.push({ token: token.address, heat: BigInt(heat) });
-  }
-  if (heatUpdates.length === 0) {
-    return;
-  }
-  await updateHeat(heatUpdates);
-  for (const heatUpdate of heatUpdates) {
-    const token = await prisma.token.findUnique({
-      where: { address: heatUpdate.token },
-    });
-    if (!token) {
-      continue;
-    }
-    const heat = await getBlockchainHeat(token.fairLaunchId);
-    await prisma.token.update({
-      where: { id: token.id },
-      data: { heat: BigInt(heat) },
-    });
-  }
-}
-
 export {
   getFollowerStats,
   getLensUsername,
@@ -233,5 +190,4 @@ export {
   getFollowers,
   getEngagementMetrics,
   getHeat,
-  updateAllTokensHeat,
 }; 

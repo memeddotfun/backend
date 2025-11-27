@@ -29,6 +29,10 @@ export const connectWalletSchema = z.object({
     message: z.string().min(1),
 });
 
+export const connectInstagramSchema = z.object({
+    code: z.string().min(1),
+});
+
 export const socialSchema = z.object({
     type: z.nativeEnum(SocialType),
     username: z.string(),

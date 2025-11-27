@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../clients/prisma';
 import { z } from 'zod';
-import { connectWalletSchema, createTokenSchema, socialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema } from '../types/zod';
+import { connectWalletSchema, createTokenSchema, socialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema, connectInstagramSchema } from '../types/zod';
 import { createFairLaunch, claimUnclaimedTokens, isCreatorBlocked } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
@@ -10,6 +10,7 @@ import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
 import { tokenDeploymentQueue } from '../queues/tokenDeployment';
+import { connectInstagram, getInstagramBusinessAccount } from '../services/instagram';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
@@ -26,14 +27,36 @@ export const createToken = async (req: FileRequest, res: Response) => {
             res.status(400).json({ error: 'Image is required and must be an image' });
             return;
         }
-        const lensUsername = req.user.socials.find((social: Social) => social.type === 'LENS')?.username;
-        if (!lensUsername) {
-            res.status(404).json({ error: 'User must have a LENS account' });
+        if (req.user.socials.length === 0) {
+            res.status(404).json({ error: 'User must have at least one social account' });
             return;
         }
 
-        const followers = await getFollowerStats(lensUsername);
-        if (followers && followers.followers < MIN_FOLLOWERS_FOR_TOKEN) {
+        let followers = 0;
+        for (const social of req.user.socials) {
+            if (social.type === 'LENS') {
+                const lensFollowers = await getFollowerStats(social.username);
+                if (!lensFollowers) {
+                    res.status(400).json({ error: 'User must have a LENS account' });
+                    return;
+                }
+                followers += lensFollowers.followers;
+            }
+            if (social.type === 'INSTAGRAM') {
+                const socialAccessToken = await prisma.socialAccessToken.findFirst({ where: { socialId: social.id } });
+                if (!socialAccessToken) {
+                    res.status(400).json({ error: 'User must have an Instagram account' });
+                    return;
+                }
+                const { followers_count } = await getInstagramBusinessAccount(socialAccessToken.accessToken);
+                if (!followers_count) {
+                    res.status(400).json({ error: 'User must have an Instagram account' });
+                    return;
+                }
+                followers += followers_count;
+            }
+        }
+        if (followers < MIN_FOLLOWERS_FOR_TOKEN) {
             res.status(400).json({ error: 'User must have at least 8000 followers' });
             return;
         }
@@ -707,6 +730,55 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Failed to get leaderboard:', error);
         res.status(500).json({ error: 'Failed to get leaderboard' });
+        return;
+    }
+};
+
+export const getInstagramAuthUrl = async (req: Request, res: Response) => {
+    try {
+        const url = `https://www.instagram.com/oauth/authorize?client_id=${process.env.META_APP_ID}&redirect_uri=${process.env.FRONTEND_URL}/instagram-callback&response_type=code&scope=instagram_business_basic,instagram_business_manage_insights`;
+        res.status(200).json({ url });
+        return;
+    } catch (error) {
+        console.error('Failed to get Instagram auth URL:', error);
+        res.status(500).json({ error: 'Failed to get Instagram auth URL' });
+        return;
+    }
+};
+
+export const connectInstagramAuth = async (req: Request, res: Response) => {
+    try {
+        const { code } = connectInstagramSchema.parse(req.body);
+        const existingSocial = await prisma.social.findFirst({ where: { type: 'INSTAGRAM', userId: req.user.id } });
+        if (existingSocial) {
+            res.status(400).json({ error: 'Instagram account already connected' });
+            return;
+        }
+        const { username, user_id, access_token } = await connectInstagram(code);
+        const existingSocialAccountId = await prisma.social.findFirst({ where: { type: 'INSTAGRAM', accountId: user_id } });
+        if (existingSocialAccountId) {
+            res.status(400).json({ error: 'Instagram account ID already connected to another user' });
+            return;
+        }
+        await prisma.social.create({
+            data: {
+                type: 'INSTAGRAM',
+                username,
+                accountId: user_id,
+                socialAccessToken: {
+                    create: {
+                        accessToken: access_token,
+                        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 55)
+                    }
+                },
+                user: { connect: { id: req.user.id } }
+            }
+        });
+        res.status(200).json({ message: 'Instagram account connected successfully' });
+        return;
+    } catch (error) {
+        console.error('Failed to connect Instagram:', error);
+        res.status(500).json({ error: 'Failed to connect Instagram' });
         return;
     }
 };
