@@ -676,7 +676,12 @@ export const connectInstagramAuth = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'Instagram account already connected' });
             return;
         }
-        const { username, user_id, access_token } = await connectInstagram(code);
+        const instagramData = await connectInstagram(code);
+        if (!instagramData) {
+            res.status(400).json({ error: 'Invalid account or not a business account' });
+            return;
+        }
+        const { username, user_id, access_token } = instagramData;
         const existingSocialAccountId = await prisma.social.findFirst({ where: { type: 'INSTAGRAM', accountId: user_id } });
         if (existingSocialAccountId) {
             res.status(400).json({ error: 'Instagram account ID already connected to another user' });
