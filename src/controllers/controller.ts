@@ -678,7 +678,7 @@ export const connectInstagramAuth = async (req: Request, res: Response) => {
         }
         const instagramData = await connectInstagram(code);
         if (!instagramData) {
-            res.status(400).json({ error: 'Invalid account or not a business account' });
+            res.status(400).json({ error: 'Invalid account or not a business or creator account' });
             return;
         }
         const { username, user_id, access_token } = instagramData;
