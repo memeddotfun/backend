@@ -62,6 +62,10 @@ export const getInstagramBusinessAccount = async (accessToken: string): Promise<
 };
 
 export const getInstagramInsights = async (userId: string, accessToken: string): Promise<any> => {
+    const businessAccount = await getInstagramBusinessAccount(accessToken);
+    if (businessAccount.account_type !== 'BUSINESS') {
+        return 0;
+    }
     const response = await axios.get(`https://graph.instagram.com/${userId}/insights?metric=total_interactions&period=day&access_token=${accessToken}`);
     if (response.data.data.length === 0) {
         return 0;
