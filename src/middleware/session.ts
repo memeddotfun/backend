@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../clients/prisma';
 
 export const sessionMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    try {
     const token = req.cookies.token;
     if (!token) {
         res.status(401).json({ error: 'Unauthorized' });
@@ -30,4 +31,14 @@ export const sessionMiddleware = async (req: Request, res: Response, next: NextF
     }
     req.user = session.user;
     next();
+    } catch (error) {
+        console.error('Failed to verify session:', error);
+        res.status(401).clearCookie('token', {
+            httpOnly: true,
+            secure: true,
+            path: '/',
+            sameSite: 'none'
+        }).json({ error: 'Unauthorized' });
+        return;
+    }
 };
