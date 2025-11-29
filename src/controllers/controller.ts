@@ -5,12 +5,12 @@ import { connectWalletSchema, createTokenSchema, socialSchema, createNonceSchema
 import { createFairLaunch, claimUnclaimedTokens, isCreatorBlocked } from '../services/blockchain';
 import { getPresignedUrl, uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
-import { getEngagementMetrics, getFollowerStats, getHandleOwner, getLensAccountId, getLensUsername } from '../services/lens';
+import { getEngagementMetrics, getFollowerStats, getHandleOwner, getLensAccountId, getLensHandle, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
 import { tokenDeploymentQueue } from '../queues/tokenDeployment';
-import { connectInstagram, getInstagramBusinessAccount } from '../services/instagram';
+import { connectInstagram, getInstagramBusinessAccount, getInstagramInsights } from '../services/instagram';
 
 interface FileRequest extends Request {
     file?: Express.Multer.File;
@@ -706,6 +706,38 @@ export const connectInstagramAuth = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Failed to connect Instagram:', error);
         res.status(500).json({ error: 'Failed to connect Instagram' });
+        return;
+    }
+};
+
+export const refreshSocials = async (req: Request, res: Response) => {
+    try {
+        const socials = await prisma.social.findMany({ where: { userId: req.user.id }, include: { socialAccessToken: true } });
+        for (const social of socials) {
+            if (social.type === 'INSTAGRAM') {
+                const accessToken = social.socialAccessToken.find(accessToken => accessToken.socialId === social.id);
+                if (!accessToken) {
+                    continue;
+                }
+                const account = await getInstagramBusinessAccount(accessToken.accessToken);
+                if (!account) {
+                    continue;
+                }
+                await prisma.social.update({ where: { id: social.id }, data: { active: true, username: account.username } });
+            }
+            if (social.type === 'LENS') {
+                const handle = await getLensHandle(social.accountId.split(':')[1]);
+                if (!handle) {
+                    continue;
+                }
+                await prisma.social.update({ where: { id: social.id }, data: { active: true, username: handle } });
+            }
+        }
+        res.status(200).json({ message: 'Socials refreshed successfully' });
+        return;
+    } catch (error) {
+        console.error('Failed to refresh socials:', error);
+        res.status(500).json({ error: 'Failed to refresh socials' });
         return;
     }
 };

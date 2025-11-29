@@ -24,8 +24,12 @@ async function updateAllTokensHeat() {
       }
       let heat = 0;
       for (const social of token.user.socials) {
+        if (!social.active) {
+          continue;
+        }
+        const accountId = social.accountId.split(':')[1];
       if (social.type === 'LENS') {
-        const lensHeat = await getHeat(social.username, tokenData.lastHeatUpdate);
+        const lensHeat = await getHeat(accountId, tokenData.lastHeatUpdate);
         
     if (lensHeat && ((lensHeat - tokenData.lastEngagementBoost) > MIN_HEAT_UPDATE && new Date() > tokenData.lastHeatUpdate)) {
       heat += lensHeat;
@@ -36,7 +40,7 @@ async function updateAllTokensHeat() {
         if (!accessToken) {
           continue;
         }
-        const instagramHeat = await getInstagramInsights(social.accountId, accessToken.accessToken);
+        const instagramHeat = await getInstagramInsights(accountId, accessToken.accessToken);
         if (instagramHeat && ((instagramHeat - tokenData.lastEngagementBoost) > MIN_HEAT_UPDATE && new Date() > tokenData.lastHeatUpdate)) {
           heat += instagramHeat;
         }
@@ -62,7 +66,7 @@ async function updateAllTokensHeat() {
     const heat = await getBlockchainHeat(token.fairLaunchId);
     await prisma.token.update({
       where: { id: token.id },
-      data: { heat: BigInt(heat) },
+      data: { heat: Number(heat) },
     });
   }
 } 

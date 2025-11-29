@@ -47,12 +47,23 @@ async function getLensUsername(address: string) {
   return result.value.username.localName;
 }
 
+async function getLensHandle(accountId: string) {
+  const result = await fetchAccount(client, {
+    address: evmAddress(accountId),
+  });
+  if (result.isErr() || !result.value || !result.value.username) {
+    return null;
+  }
+  return result.value.username.localName;
+}
+
 async function getLensAccountId(address: string, handle: string) {
   const result = await fetchAccount(client, {
     username: {
       localName: handle,
     }
   });
+
   const owner = await getHandleOwner(handle);
   if (result.isErr() || !result.value || owner.toLowerCase() !== address.toLowerCase()) {
     return null;
@@ -125,7 +136,11 @@ function mockStats() {
   };
 }
 
-async function getHeat(handle: string, from: Date) {
+async function getHeat(accountId: string, from: Date) {
+  const handle = await getLensHandle(accountId);
+  if (!handle) {
+    return null;
+  }
   const engagement = await getEngagementMetrics(handle, from);
   if (!engagement) {
     return null;
@@ -188,6 +203,7 @@ export {
   getLensAccountId,
   getHandleOwner,
   getFollowers,
+  getLensHandle,
   getEngagementMetrics,
   getHeat,
 }; 

@@ -1,4 +1,5 @@
 import axios from "axios";
+import prisma from "../clients/prisma";
 
 /**
  * Connects to Instagram and retrieves the user's access token
@@ -26,7 +27,7 @@ export const connectInstagram = async (code: string): Promise<{ username: string
     if (businessAccount.account_type !== 'BUSINESS' && businessAccount.account_type !== 'CREATOR') {
         return null;
     }
-    return { username: businessAccount.username, user_id: businessAccount.user_id, access_token: longLivedToken.data.access_token };
+    return { username: businessAccount.username, user_id: `INSTAGRAM:${businessAccount.user_id}`, access_token: longLivedToken.data.access_token };
     } catch (error) {
         return null;
     }
@@ -64,6 +65,7 @@ export const getInstagramBusinessAccount = async (accessToken: string): Promise<
 export const getInstagramInsights = async (userId: string, accessToken: string): Promise<any> => {
     const businessAccount = await getInstagramBusinessAccount(accessToken);
     if (businessAccount.account_type !== 'BUSINESS' && businessAccount.account_type !== 'CREATOR') {
+        await prisma.social.update({ where: { accountId: userId }, data: { active: false } });
         return 0;
     }
     const response = await axios.get(`https://graph.instagram.com/${userId}/insights?metric=total_interactions&period=day&access_token=${accessToken}`);
