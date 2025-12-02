@@ -21,7 +21,7 @@ router.post('/connect-wallet', connectWallet);
 router.post('/disconnect-wallet', disconnectWallet);
 router.get('/user', sessionMiddleware, getUser);
 router.post('/connect-social', sessionMiddleware, connectSocial);
-router.post('/connect-instagram-auth', connectInstagramAuth);
+router.post('/connect-instagram-auth', sessionMiddleware, connectInstagramAuth);
 router.get('/token/:id', getToken);
 router.get('/token-by-address/:address', getTokenByAddress);
 router.get('/token-by-social', getTokenBySocial);
