@@ -29,6 +29,7 @@ export const connectInstagram = async (code: string): Promise<{ username: string
     }
     return { username: businessAccount.username, user_id: `INSTAGRAM:${businessAccount.user_id}`, access_token: longLivedToken.data.access_token };
     } catch (error) {
+        console.error('Failed to connect Instagram:', error);
         return null;
     }
 };
@@ -54,12 +55,16 @@ export const refreshInstagramToken = async (refreshToken: string): Promise<strin
  * @returns The user's Instagram business account information
  */
 export const getInstagramBusinessAccount = async (accessToken: string): Promise<{ username: string, user_id: string, followers_count: number, account_type: string }> => {
-    const response = await axios.get('https://graph.instagram.com/v21.0/me?fields=username,user_id,followers_count,account_type', {
+   try { const response = await axios.get('https://graph.instagram.com/v21.0/me?fields=username,user_id,followers_count,account_type', {
         headers: {
             Authorization: `Bearer ${accessToken}`,
         },
     });
     return response.data;
+    } catch (error) {
+        console.error('Failed to get Instagram business account:', error);
+        throw new Error('Failed to get Instagram business account');
+    }
 };
 
 export const getInstagramInsights = async (userId: string, accessToken: string): Promise<any> => {
