@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getTokenByAddress, getTokenBySocial, getLeaderboard, getInstagramAuthUrl, connectInstagramAuth, refreshSocials } from '../controllers/controller';
+import { connectWallet, createToken, createNonce, getToken, getAllTokens, disconnectWallet, getUser, getLensEngagement, claimUnclaimedToken, createUnclaimedTokens, connectSocial, getTokenByAddress, getTokenBySocial, getLeaderboard, getInstagramAuthUrl, connectInstagramAuth, refreshSocials, deleteAccount } from '../controllers/controller';
 import { nonceMiddleware } from '../middleware/nonce';
 import { sessionMiddleware } from '../middleware/session';
 
@@ -19,6 +19,7 @@ router.post('/claim-unclaimed-token', sessionMiddleware, nonceMiddleware, claimU
 router.post('/create-nonce', createNonce);
 router.post('/connect-wallet', connectWallet);
 router.post('/disconnect-wallet', disconnectWallet);
+router.delete('/delete-account', sessionMiddleware, deleteAccount);
 router.get('/user', sessionMiddleware, getUser);
 router.post('/connect-social', sessionMiddleware, connectSocial);
 router.post('/connect-instagram-auth', sessionMiddleware, connectInstagramAuth);

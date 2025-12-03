@@ -741,3 +741,35 @@ export const refreshSocials = async (req: Request, res: Response) => {
         return;
     }
 };
+
+export const deleteAccount = async (req: Request, res: Response) => {
+    try {
+        const tokens = await prisma.token.findMany({ where: { userId: req.user.id } });
+        if (tokens.length > 0) {
+            res.status(400).json({ error: 'User has tokens' });
+            return;
+        }
+        
+        // Delete all relationships
+        const socials = await prisma.social.findMany({ where: { userId: req.user.id } });
+        for (const social of socials) {
+            await prisma.socialAccessToken.deleteMany({ where: { socialId: social.id } });
+        }
+        await prisma.social.deleteMany({ where: { userId: req.user.id } });
+        await prisma.session.deleteMany({ where: { userId: req.user.id } });
+        await prisma.nonce.deleteMany({ where: { userId: req.user.id } });
+        
+        await prisma.user.delete({ where: { id: req.user.id } });
+        res.status(200).clearCookie('token', {
+            httpOnly: true,
+            secure: true,
+            path: '/',
+            sameSite: 'none'
+        }).json({ message: 'Account deleted successfully' });
+        return;
+    } catch (error) {
+        console.error('Failed to delete account:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
+        return;
+    }
+};
