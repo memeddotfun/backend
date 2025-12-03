@@ -591,16 +591,44 @@ export const getAllTokens = async (req: Request, res: Response) => {
     }
 };
 
-export const getLensEngagement = async (req: Request, res: Response) => {
+export const getEngagement = async (req: Request, res: Response) => {
     try {
-        const { handle } = req.params;
-        const from = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const engagement = await getEngagementMetrics(handle, from);
-        res.status(200).json({ engagement });
+        const { token } = req.params;
+        const tokenData = await prisma.token.findUnique({ where: { address: token }, include: { user: { include: { socials: { include: { socialAccessToken: true } } } } } });
+        if (!tokenData) {
+            res.status(404).json({ error: 'Token not found' });
+            return;
+        }
+        let engagements: any = [];
+        for (const social of tokenData.user.socials) {
+            if (social.type === 'LENS') {
+                const handle = social.accountId.split(':')[1];
+                const from = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                const engagement = await getEngagementMetrics(handle, from);
+                engagements.push({
+                    type: social.type,
+                    engagement: engagement
+                });
+                continue;
+            }
+            if (social.type === 'INSTAGRAM') {
+                const accessToken = social.socialAccessToken.find(accessToken => accessToken.socialId === social.id);
+                if (!accessToken) {
+                    continue;
+                }
+                const engagement = await getInstagramInsights(social.accountId, accessToken.accessToken);
+                engagements.push({
+                    type: social.type,
+                    engagement: engagement
+                });
+                continue;
+            }
+        }
+        res.status(200).json({ engagements });
         return;
     }
     catch (error) {
-        console.error('Failed to get lens engagement:', error);
+        console.error('Failed to get engagement:', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({
                 error: 'Validation failed',
@@ -608,7 +636,7 @@ export const getLensEngagement = async (req: Request, res: Response) => {
             });
             return;
         }
-        res.status(500).json({ error: 'Failed to get lens engagement' });
+        res.status(500).json({ error: 'Failed to get engagement' });
         return;
     }
 };
