@@ -744,9 +744,17 @@ export const refreshSocials = async (req: Request, res: Response) => {
 
 export const deleteAccount = async (req: Request, res: Response) => {
     try {
-        const tokens = await prisma.token.findMany({ where: { userId: req.user.id } });
-        if (tokens.length > 0) {
-            res.status(400).json({ error: 'User has tokens' });
+        const activeTokens = await prisma.token.findMany({
+            where: {
+                userId: req.user.id,
+                OR: [
+                    { address: { not: null } },
+                    { endTime: { gt: new Date() }, failed: false }
+                ]
+            }
+        });
+        if (activeTokens.length > 0) {
+            res.status(400).json({ error: 'User has active tokens' });
             return;
         }
         
