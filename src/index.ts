@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({origin: [process.env.FRONTEND_URL!, 'http://localhost:5173'], credentials: true}));
+app.use(cors({origin: [process.env.FRONTEND_URL!, 'http://localhost:5173', 'http://10.128.189.206:3000'], credentials: true}));
 app.use(morgan('dev'));
 
 // Routes
