@@ -49,10 +49,6 @@ export const createToken = async (req: FileRequest, res: Response) => {
                     return;
                 }
                 const { followers_count } = await getInstagramBusinessAccount(socialAccessToken.accessToken);
-                if (!followers_count) {
-                    res.status(400).json({ error: 'User must have an Instagram account' });
-                    return;
-                }
                 followers += followers_count;
             }
         }
