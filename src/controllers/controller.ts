@@ -3,13 +3,12 @@ import prisma from '../clients/prisma';
 import { z } from 'zod';
 import { connectWalletSchema, createTokenSchema, socialSchema, createNonceSchema, createUnclaimedTokensSchema, claimUnclaimedTokensSchema, connectInstagramSchema } from '../types/zod';
 import { createFairLaunch, claimUnclaimedTokens, isCreatorBlocked } from '../services/blockchain';
-import { getPresignedUrl, uploadMedia } from '../services/media';
+import { uploadMedia } from '../services/media';
 import { randomBytes } from 'crypto';
 import { getEngagementMetrics, getFollowerStats, getHandleOwner, getLensAccountId, getLensHandle, getLensUsername } from '../services/lens';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { Social } from '../generated/prisma';
-import { tokenDeploymentQueue } from '../queues/tokenDeployment';
 import { connectInstagram, getInstagramBusinessAccount, getInstagramInsights } from '../services/instagram';
 
 interface FileRequest extends Request {
