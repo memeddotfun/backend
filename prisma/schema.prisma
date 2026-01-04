@@ -30,91 +30,91 @@ enum SocialType {
 }
 
 model SocialAccessToken {
-  id String @id @default(uuid())
-  social Social @relation(fields: [socialId], references: [id])
-  socialId String
+  id          String   @id @default(uuid())
+  social      Social   @relation(fields: [socialId], references: [id])
+  socialId    String
   accessToken String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt  
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Social {
-  id String @id @default(uuid())
-  userId String
-  user User @relation(fields: [userId], references: [id])
-  type SocialType
-  username String
-  accountId String @unique
+  id                String              @id @default(uuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id])
+  type              SocialType
+  username          String
+  accountId         String              @unique
   socialAccessToken SocialAccessToken[]
-  active Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active            Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 }
 
 model User {
-  id String @id @default(uuid())
-  address String @unique
-  socials Social[]
-  role Role @default(USER)
-  session Session[]
-  token Token[]
-  nonce Nonce[]
-  lastLogin DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  address   String    @unique
+  socials   Social[]
+  role      Role      @default(USER)
+  session   Session[]
+  token     Token[]
+  nonce     Nonce[]
+  lastLogin DateTime  @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Token {
-  id String @id @default(uuid())
-  fairLaunchId String @unique
-  address String? @unique
-  user User @relation(fields: [userId], references: [id])
-  userId String
-  metadata Metadata @relation(fields: [metadataId], references: [id])
-  metadataId String
-  endTime DateTime
-  claimed Boolean @default(false)
-  failed Boolean @default(false)
-  heat Int @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  fairLaunchId String   @unique
+  address      String?  @unique
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  metadata     Metadata @relation(fields: [metadataId], references: [id])
+  metadataId   String
+  endTime      DateTime
+  claimed      Boolean  @default(false)
+  failed       Boolean  @default(false)
+  heat         Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Metadata {
-  id String @id @default(uuid())
-  cid String @unique
-  name String
-  ticker String
+  id          String   @id @default(uuid())
+  cid         String   @unique
+  name        String
+  ticker      String
   description String
-  imageKey String
-  token Token[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt  
+  imageUrl    String
+  token       Token[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Nonce {
-  id String @id @default(uuid())
-  nonce String @unique
-  user User @relation(fields: [userId], references: [id])
-  userId String
+  id        String   @id @default(uuid())
+  nonce     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Session {
-  id String @id @default(uuid())
-  user User @relation(fields: [userId], references: [id])
-  userId String
-  session String @unique
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  session   String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Config {
-  id String @id @default(uuid())
-  key String @unique
-  value String
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

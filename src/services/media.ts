@@ -5,7 +5,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 type Media = {
     cid: string;
-    key: string;
+    url: string;
 };
 
 type Metadata = {
@@ -33,7 +33,7 @@ export const uploadMedia = async (file: Express.Multer.File, metadata: Metadata)
     const metadataResponse = await pinata.upload.public.json(metadata);
     return {
         cid: metadataResponse.cid,
-        key: Key,
+        url: `${process.env.AWS_CLOUDFRONT_URL}/${Key}`,
     };
 };
 

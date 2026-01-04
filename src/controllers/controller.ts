@@ -81,7 +81,7 @@ export const createToken = async (req: FileRequest, res: Response) => {
                 metadata: {
                     create: {
                         cid: media.cid,
-                        imageKey: media.key,
+                        imageUrl: media.url,
                         name,
                         ticker,
                         description,
@@ -160,7 +160,7 @@ export const createUnclaimedTokens = async (req: Request, res: Response) => {
                 metadata: {
                     create: {
                         cid: media.cid,
-                        imageKey: media.key,
+                        imageUrl: media.url,
                         ticker,
                         name,
                         description,
@@ -203,7 +203,7 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'User must have a LENS account' });
             return;
         }
-        const owner = await getHandleOwner(lensUsername);   
+        const owner = await getHandleOwner(lensUsername);
         if (owner?.toLowerCase() !== req.user.address.toLowerCase()) {
             res.status(400).json({ error: 'User must be the creator of the token' });
             return;
@@ -216,10 +216,10 @@ export const claimUnclaimedToken = async (req: Request, res: Response) => {
         }
 
         let claimAddress = token.user.address;
-        if(token.userId !== req.user.id) {
+        if (token.userId !== req.user.id) {
             await prisma.token.update({
                 where: { id },
-                data: { 
+                data: {
                     userId: req.user.id
                 }
             });
@@ -415,10 +415,6 @@ export const getUser = async (req: Request, res: Response) => {
             res.status(404).json({ error: 'User not found' });
             return;
         }
-         for (const token of user.token) {
-            const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
-            token.metadata.imageKey = presignedUrl;
-        }
         res.status(200).json({ user });
         return;
     }
@@ -437,8 +433,6 @@ export const getToken = async (req: Request, res: Response) => {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
-        const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
-        token.metadata.imageKey = presignedUrl;
         res.status(200).json({ token });
         return;
     } catch (error) {
@@ -458,21 +452,19 @@ export const getToken = async (req: Request, res: Response) => {
 export const getTokenByAddress = async (req: Request, res: Response) => {
     try {
         const { address } = req.params;
-        const token = await prisma.token.findFirst({ 
-            where: { 
+        const token = await prisma.token.findFirst({
+            where: {
                 address: {
                     equals: address,
                     mode: 'insensitive'
                 }
-            }, 
-            include: { metadata: true, user: { include: { socials: true } } } 
+            },
+            include: { metadata: true, user: { include: { socials: true } } }
         });
         if (!token) {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
-        const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
-        token.metadata.imageKey = presignedUrl;
         res.status(200).json({ token });
         return;
     }
@@ -498,8 +490,6 @@ export const getTokenBySocial = async (req: Request, res: Response) => {
             res.status(404).json({ error: 'Token not found' });
             return;
         }
-        const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
-        token.metadata.imageKey = presignedUrl;
         res.status(200).json({ token });
         return;
     }
@@ -544,7 +534,7 @@ export const getAllTokens = async (req: Request, res: Response) => {
         }
 
         const [tokens, totalCount] = await Promise.all([
-            prisma.token.findMany({ 
+            prisma.token.findMany({
                 include: { metadata: true, user: { include: { socials: true } } },
                 skip,
                 take: limit,
@@ -553,15 +543,9 @@ export const getAllTokens = async (req: Request, res: Response) => {
             }),
             prisma.token.count({ where: whereClause })
         ]);
-
-        for (const token of tokens) {
-            const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
-            token.metadata.imageKey = presignedUrl;
-        }
-
         const totalPages = Math.ceil(totalCount / limit);
 
-        res.status(200).json({ 
+        res.status(200).json({
             tokens,
             pagination: {
                 currentPage: page,
@@ -653,11 +637,6 @@ export const getLeaderboard = async (req: Request, res: Response) => {
             }),
             prisma.token.count({ where: { address: { not: null } } })
         ]);
-
-        for (const token of tokens) {
-            const presignedUrl = await getPresignedUrl(token.metadata.imageKey);
-            token.metadata.imageKey = presignedUrl;
-        }
 
         const totalPages = Math.ceil(totalCount / limit);
 
@@ -781,7 +760,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
             res.status(400).json({ error: 'User has active tokens' });
             return;
         }
-        
+
         // Delete all relationships
         const socials = await prisma.social.findMany({ where: { userId: req.user.id } });
         for (const social of socials) {
@@ -790,7 +769,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
         await prisma.social.deleteMany({ where: { userId: req.user.id } });
         await prisma.session.deleteMany({ where: { userId: req.user.id } });
         await prisma.nonce.deleteMany({ where: { userId: req.user.id } });
-        
+
         await prisma.user.delete({ where: { id: req.user.id } });
         res.status(200).clearCookie('token', {
             httpOnly: true,
